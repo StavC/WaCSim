@@ -191,6 +191,26 @@ The ``concealment_mitm`` attack is similar to the standard MitM but includes opt
          start: 200
          end: 250
 
+seq_mitm
+~~~~~~~~~~~~~~~~~
+The ``seq_mitm`` attack allows for progressive changes in the offset or value of an attack in time. Two exclusive parameters are used for this attack, ``scaleParam`` and ``scaleTime``. ``scaleParam`` is an additive/subtractive amount that changes the initial offset/value provided for the attack each time the scale is changed. ``scaletime`` determines how often ``scaleParam`` modifies the attack offset/value, measured in iterations of the simulation. For example, if an initial ``offset`` of ``0.5``, ``scaleParam`` of ``0.1`` and ``scaleTime`` of ``3`` is given then by the sixth iteration of the attack the offset will be ``0.7`` instead of ``0.5``.
+
+.. code-block:: yaml
+
+   network_attacks:
+     - name: plc1attack_concealment_mitm
+       type: concealment_mitm
+       target: PLC1
+       tags:
+         - tag: T41
+           offset: 1
+           scaleParam: 0.5
+           scaleTime: 2
+       trigger:
+         type: time
+         start: 200
+         end: 250
+
 simple_dos
 ~~~~~~~~~
 The ``simple_dos`` attack is a denial-of-service attack that prevents packets from reaching their destination. After launching an ARP poisoning attack similar to MitM methods, the attacker intercepts packets and deliberately does not forward them.  
@@ -318,7 +338,7 @@ value
 -----
 **Available to:** ``mitm``, ``server_mitm``, ``concealment_mitm``.
 
-**Takes:** a float number representing the attack value.
+**Takes:** a float number representing the attack value or a path to a CSV file containg attack values.
 
 This parameter is used in all MitM attacks (except ``naive_mitm`` and ``replay_mitm``) and for concealment data when using the ``value`` method. It forces the tag value to equal the specified number.
 
@@ -332,6 +352,28 @@ Used similarly to ``value``, the ``offset`` parameter is applied in MitM attacks
 ``final_value = original_value + offset``
 
 The offset may be positive or negative.
+
+scaleParam
+----------
+**(Required for** ``seq_mitm`` **attacks)**
+
+**Available to:** ``seq_mitm``.
+
+**Takes:** a float number representing the scale value.
+
+Determines how much the value/offset of the attack changes with each sequential increase/decrease.
+
+The value may be positive or negative.
+
+scaleTime
+---------
+**(Required for** ``seq_mitm`` **attacks)**
+
+**Available to:** ``seq_mitm``.
+
+**Takes:** an integer representing how often the scale of the attack should change.
+
+Determines how often, in units of simulation iterations, the value should change during a sequential MitM attack.
 
 capture_start
 -------------
