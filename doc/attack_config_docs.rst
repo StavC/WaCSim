@@ -24,7 +24,7 @@ trigger
 
 **Takes:** a schema that determines when the attack is triggered.
 
-The **trigger** option is a container for the parameters that define how and when an attack is initiated. There are three types of triggers available in WaCSim_2: ``time``, ``below``/``above``, and ``between``.
+The **trigger** option is a container for the parameters that define how and when an attack is initiated. There are three types of triggers available in WaCSim: ``time``, ``below``/``above``, and ``between``.
 
 time
 ~~~~
