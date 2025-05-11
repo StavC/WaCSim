@@ -4,7 +4,7 @@ Getting Started
 To run an experiment with WaCSim the following files are required:
 
 * `EPANET Network .INP File`_
-* WaC Experiment Config File
+* WaCSim Experiment Config File
 * WaCSim PLC Config File
 
 While these are the required files to run a WaCSim simulation, other configuration and data files can be included. However, because they are optional they will not be used in the Getting Started examples and instead one should refer to the `Config File Documentation`_ section for how and when to use them. These files include:
