@@ -26,7 +26,7 @@ trigger
 
 **Takes:** a schema that determines when the event is triggered.
 
-The trigger option is a container that contains the options for how an event is triggered and when. Overall, there are three different types of triggers available in DHALSIM_2, with their options to determine their behavior. These tree types are `time`, `below` and `above`, and `between.`
+The trigger option is a container that contains the options for how an event is triggered and when. Overall, there are three different types of triggers available in WaCSim, with their options to determine their behavior. These tree types are `time`, `below` and `above`, and `between.`
 
 time
 ~~~~
