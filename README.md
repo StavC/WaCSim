@@ -3,7 +3,7 @@ An open-source digital twin for water distribution systems, built upon [DHALSIM]
 
 WaCSim utilizes multiple open-source tools to simulate both the hydraulic and cyber layer of the simulation. For the hydraulic layer, WaCSim relies upon EPANET, an open-source hydraulic solver for water distribution systems. EPANET is available with two simulators, [WNTR](https://github.com/USEPA/WNTR) and [epynet](https://github.com/Vitens/epynet). For the cyber layer, WaCSim relies upon both [mininet](https://github.com/mininet/mininet) and [miniCPS](https://github.com/scy-phy/minicps) to simulate the common industrial system and the overall network communication between SCADA and PLCs.  
 
-# Features
+## Features
 WaCSim is a highly customizable digital twin. The following are some capabilities of WaCSim:
 1. Customizable network architecture, with the ability to control the actuators, sensors, and dependent sensors for each PLC and for any water distribution system. 
 2. Complex PLC and SCADA behavior via user-made scripts.
