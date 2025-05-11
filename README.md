@@ -7,7 +7,7 @@ WaCSim utilizes multiple open-source tools to simulate both the hydraulic and cy
 WaCSim is a highly customizable digital twin. The following are some capabilities of WaCSim:
 1. Customizable network architecture, with the ability to control the actuators, sensors, and dependent sensors for each PLC and for any water distribution system. 
 2. Complex PLC and SCADA behavior via user-made scripts.
-3. A variety of attack types such as various Man in the Middle variants and denial of service. Each attack is detailed in the [Attack Config Options](doc/attack_config_options) section of the documentation.
+3. A variety of attack types such as various Man in the Middle variants and denial of service. Each attack is detailed in the [Attack Config Options](doc/attack_config_docs.rst) section of the documentation.
 4. Ability to simulate network losses, delays, jitters, and sensor noise for each PLC and SCADA.
 5. Many more configuration options, detailed in the [Experiment Config Options](doc/experiment_config_docs.rst) section of the documentation.
 ## Installation
