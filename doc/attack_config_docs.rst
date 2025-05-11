@@ -24,7 +24,7 @@ trigger
 
 **Takes:** a schema that determines when the attack is triggered.
 
-The **trigger** option is a container for the parameters that define how and when an attack is initiated. There are three types of triggers available in DHALSIM_2: ``time``, ``below``/``above``, and ``between``.
+The **trigger** option is a container for the parameters that define how and when an attack is initiated. There are three types of triggers available in WaCSim_2: ``time``, ``below``/``above``, and ``between``.
 
 time
 ~~~~
@@ -199,7 +199,7 @@ The ``simple_dos`` attack is a denial-of-service attack that prevents packets fr
 
 unconstrained_blackbox_concealment_mitm
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-This attack is specific to the CTown network. For details on its operation and purpose, refer to `the paper`_ and the original `DHALSIM documentation`_.
+This attack is specific to the CTown network. For details on its operation and purpose, refer to `the paper`_ and the original `WaCSim documentation`_.
 
 target
 ------
@@ -364,4 +364,4 @@ replay_start
 Captured data is replayed iteratively starting from this iteration until all captured data is sent. The replay duration matches the capture duration.
 
 .. _`from the paper`: https://dl.acm.org/doi/10.1145/3564625.3564633
-.. _`DHALSIM documentation`: https://github.com/StavC/DHALSIM/blob/master/doc/attacks.rst#unconstrained-blackbox-concealment-mitm-attack
+.. _`WaCSim documentation`: https://github.com/StavC/WaCSim/blob/master/doc/attacks.rst#unconstrained-blackbox-concealment-mitm-attack
