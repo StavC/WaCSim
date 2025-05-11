@@ -211,13 +211,17 @@ The targeted PLC depends on the attack type and sometimes the ``direction`` para
 
 direction
 ---------
-**Takes:** ``source`` **or** ``destination`` **(Default: ``source``)**
+**Available to:** ``naive_mitm``, ``simple_dos``.
+
+**Takes:** ``source`` **or** ``destination`` **(Default:** ``source`` **)**
 
 This parameter determines whether an attack affects outbound packets from the targeted PLC (``source``) or inbound packets to the targeted PLC (``destination``).
 
 tags
 ----
 **(Required for** ``mitm`` **,** ``server_mitm`` **,** **and** ``concealment_mitm`` **attacks)**
+
+**Available to:** ``mitm``, ``server_mitm``, ``concealment_mitm``.
 
 **Takes:** a schema defining the tags to be modified.
 
@@ -240,6 +244,8 @@ tag
 concealment_data
 ----------------
 **(Required for** ``concealment_mitm`` **attacks)**
+
+**Available to:** ``concealment_mitm``.
 
 Concealment data defines how the attack is hidden from the SCADA. It only applies to data from the targeted PLC that is sent to the SCADA, while other PLCs receive the modified data as specified by the attack parameters.
 
@@ -310,12 +316,16 @@ When set to ``network_replay``, concealment is performed by capturing all packet
 
 value
 -----
+**Available to:** ``mitm``, ``server_mitm``, ``concealment_mitm``.
+
 **Takes:** a float number representing the attack value.
 
 This parameter is used in all MitM attacks (except ``naive_mitm`` and ``replay_mitm``) and for concealment data when using the ``value`` method. It forces the tag value to equal the specified number.
 
 offset
 ------
+**Available to:** ``mitm``, ``server_mitm``, ``concealment_mitm``.
+
 **Takes:** a float number representing the attack value.
 
 Used similarly to ``value``, the ``offset`` parameter is applied in MitM attacks (except ``naive_mitm`` and ``replay_mitm``) and for concealment data when using the ``value`` method. The tag value is modified as follows:
@@ -325,7 +335,9 @@ The offset may be positive or negative.
 
 capture_start
 -------------
-**(Required for** ``replay_mitm`` **attacks)**
+**(Required for** ``replay_mitm``, **attacks)**
+
+**Available to:** ``replay``, ``concealment_mitm``.
 
 **Takes:** an integer representing the iteration at which to begin capturing packets or payloads.
 
@@ -335,6 +347,8 @@ capture_end
 -----------
 **(Required for** ``replay_mitm`` **attacks)**
 
+**Available to:** ``replay``, ``concealment_mitm``.
+
 **Takes:** an integer representing the iteration at which to stop capturing packets or payloads.
 
 Data from the iteration specified by ``end_capture`` is included in the capture; only data from subsequent iterations is excluded.
@@ -342,6 +356,8 @@ Data from the iteration specified by ``end_capture`` is included in the capture;
 replay_start
 ------------
 **(Required for** ``replay_mitm`` **attacks)**
+
+**Available to:** ``replay``, ``concealment_mitm``.
 
 **Takes:** an integer representing the iteration at which to start replaying captured packets or payloads.
 
