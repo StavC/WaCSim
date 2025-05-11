@@ -44,7 +44,7 @@ inp_file
 **Takes file path to .INP file.**
 
 The .INP file is the file that contains all information about the water distribution system (WDS) and the hydraulic simulation parameters for use with the `EPANET`_ hydraulic simulation engine. Besides
-defining the components of the WDS (junctions, pipes, pumps, etc.) other information of importance for DHALSIM-2 included in this file are demand patterns, control rules, and the duration/hydraulic timestep
+defining the components of the WDS (junctions, pipes, pumps, etc.) other information of importance for WaCSim included in this file are demand patterns, control rules, and the duration/hydraulic timestep
 of the simulation. These files can also be opened to be edited in EPANET, or in a text editor of your choice.
 
 plcs
@@ -75,11 +75,11 @@ output_path
 **Takes file path to desired output destination.** **(default:** ``output`` **)**
 
 The output path is the folder where all the results from the simulation would be saved. This path must be a relative path from where
-the config file is (E.g. ``/DHALSIM_results``) and not an absolute path (E.g. ``/home/user/Documents/DHALSIM_results``).
+the config file is (E.g. ``/WaCSim_results``) and not an absolute path (E.g. ``/home/user/Documents/WaCSim_results``).
 
 iterations
 ----------
-**Takes integer representing number of iterations to run DHALSIM-2 experiment for.** **(default: # of hydraulic timesteps)**
+**Takes integer representing number of iterations to run WaCSim experiment for.** **(default: # of hydraulic timesteps)**
 
 The number of iterations, by default is the number of hydraulic timesteps which is ``duration/hydraulic_time_step``. These values can be found in the .INP file for the network, or by opening
 the .INP file in EPANET. Setting the iteration value to a number other than the default will modify the duration of the simulation, but not the hydraulic time step. For example, if by default the
@@ -107,7 +107,7 @@ The log level determines what information is shown in the terminal while the sim
 ``error``: This log level only displays error-level log events and above. Errors may indicate that something has gone wrong with the simulation and are cause for investigation. However, they are not
 always a problem.
 
-``critical``: This log level will only display critical-level log events. Critical errors will always cause the simulation to shut down. DHALSIM shutdowns are typically caused by typos or errors in the configuration
+``critical``: This log level will only display critical-level log events. Critical errors will always cause the simulation to shut down. WaCSim shutdowns are typically caused by typos or errors in the configuration
 files and are the first place to check to solve them.
 
 batch_simulations
@@ -137,7 +137,7 @@ Demand driven analysis (represented by ``DD``) will always ensure that demands a
 the default in EPANET.
 
 In contrast, pressure driven demand (represented by ``PDD``) allows for the demand at each junction to fluctuate with the pressure in the system. This generally prevents negative pressures
-from occurring in the system but may lead to scenarios where the demand at each node is not met. For DHALSIM-2, PDD is recommended due to the frequency of scenarios in which the system does
+from occurring in the system but may lead to scenarios where the demand at each node is not met. For WaCSim, PDD is recommended due to the frequency of scenarios in which the system does
 not behave correctly (due to an attacker) and using demand driven analysis has a higher chance of unrealistic system states.
 
 simulator
