@@ -1,0 +1,17 @@
+
+network_attacks:
+    - name: T41MiM
+      type: mitm
+      
+      trigger:
+        type: time
+        start: 100
+        end: 200
+      tag: T41    
+      offset: -4.0
+      target: PLC4
+       
+         
+
+
+

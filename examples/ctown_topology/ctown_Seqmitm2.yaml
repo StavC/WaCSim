@@ -1,0 +1,13 @@
+network_attacks:
+- name: plc9attack2
+  type: seq_mitm
+  target: PLC5
+  tags:
+    - tag: T7
+      offset: -0.2
+      scaleParam: -0.2
+      scaleTime: 1
+  trigger:
+    start: 6
+    end: 10
+    type: time

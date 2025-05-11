@@ -1,0 +1,19 @@
+  Page 1                                    Tue Nov 26 13:36:51 2024
+
+  ******************************************************************
+  *                           E P A N E T                          *
+  *                   Hydraulic and Water Quality                  *
+  *                   Analysis for Pipe Networks                   *
+  *                         Version 2.2                            *
+  ******************************************************************
+  
+  Error 201: syntax error  in [CONTROLS] section:
+   Global Efficiency  	75.0000
+
+  Error 201: syntax error  in [CONTROLS] section:
+   Global Price       	0
+
+  Error 201: syntax error  in [CONTROLS] section:
+   Demand Charge      	0.0000
+
+  Error 200: one or more errors in input file

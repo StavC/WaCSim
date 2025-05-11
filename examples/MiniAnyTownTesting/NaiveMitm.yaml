@@ -1,0 +1,13 @@
+network_attacks:
+- name: T41MiM
+  type: naive_mitm
+  target: PLC4
+  offset: 7.0
+  trigger:
+    start: 3
+    end: 40
+    type: time
+
+
+
+

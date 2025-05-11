@@ -1,0 +1,17 @@
+
+network_attacks:
+- name: plc2_Scada_replay
+  type: concealment_mitm
+  tags:
+    - tag: T41
+      offset: 5
+  target: PLC2
+  concealment_data:
+    type: network_replay
+    capture_start: 10
+    capture_end: 30
+    replay_start: 40
+  trigger:
+    start: 5
+    end: 200
+    type: time

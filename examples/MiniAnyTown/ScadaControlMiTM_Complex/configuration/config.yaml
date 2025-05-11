@@ -1,0 +1,33 @@
+attacks:
+  network_attacks:
+  - name: T41MiM
+    offset: -4.0
+    tag: T41
+    target: PLC2
+    trigger:
+      sensor: T41
+      type: above
+      value: 6.5
+    type: mitm
+demand: pdd
+demand_patterns: demands_MiniAnyTown.csv
+inp_file: MiniAnyTown.inp
+iterations: 50
+log_level: debug
+mode: scadacontrol
+network_topology_type: complex
+output_path: ScadaControlMiTM_Complex
+plcs:
+- actuators:
+  - P79
+  name: PLC1
+- name: PLC2
+  sensors:
+  - T41
+- name: PLC3
+  sensors:
+  - T42
+- actuators:
+  - P1
+  name: PLC4
+simulator: epynet

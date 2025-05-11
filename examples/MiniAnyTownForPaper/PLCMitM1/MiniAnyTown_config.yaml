@@ -1,0 +1,18 @@
+inp_file: MiniAnyTown.inp
+output_path: MitmPLC4
+iterations: 300
+network_topology_type: complex
+plcs: !include MiniAnyTown_plc.yaml
+simulator: epynet
+demand: pdd
+log_level: debug
+demand_patterns: demands_MiniAnyTown.csv
+mode: plccontrol 
+#decision_maker_per_plc: !include MiniAnyTown_decision_plc.yaml
+#decision_maker_per_scadacommand: !include MiniAnyTown_decision_scada.yaml
+#attacks: !include anytown_concealment_mitm.yaml
+#attacks: !include Plc4_Dos.yaml
+#attacks: !include Plc4_Dos.yaml
+#attacks: !include Plc4_ConcelMiTM.yaml
+#attacks: !include Plc4_ConcelMiTMRePlay.yaml
+attacks: !include MIMTanks.yaml

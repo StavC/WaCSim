@@ -1,0 +1,12 @@
+- name: PLC1
+  actuators:
+    - P78
+- name: PLC2
+  sensors:
+    - T41
+- name: PLC3
+  sensors:
+    - T42
+- name: PLC4
+  actuators:
+    - P79

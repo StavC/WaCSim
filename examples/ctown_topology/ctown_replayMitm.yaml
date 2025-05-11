@@ -1,0 +1,11 @@
+network_attacks:
+- name: plc4attack
+  type: replay_mitm
+  target: PLC9
+  capture_start: 5
+  capture_end: 10
+  replay_start: 20
+  trigger:
+    start: 1
+    end: 100
+    type: time

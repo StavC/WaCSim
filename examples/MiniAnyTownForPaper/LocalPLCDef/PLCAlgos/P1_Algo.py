@@ -1,0 +1,157 @@
+import os
+import random
+
+import pandas as pd
+
+
+def update_csv_with_cache(DataDict, csv_file='PLC/data.csv'):
+    # Ensure the DataDict is not empty
+    if not DataDict:
+        raise ValueError("DataDict is empty or invalid")
+
+    # Check if the directory exists; if not, create it
+    if not os.path.exists(os.path.dirname(csv_file)):
+        try:
+            os.makedirs(os.path.dirname(csv_file))
+        except OSError as exc:  # Guard
+            print('Error creating directory:', exc)
+
+    # Convert DataDict to DataFrame
+    df = pd.DataFrame([DataDict])
+
+    # If the file exists, append; otherwise, create a new file
+    if os.path.isfile(csv_file):
+        df.to_csv(csv_file, mode='a', header=False, index=False)
+    else:
+        df.to_csv(csv_file, mode='w', header=True, index=False)
+
+
+def get_csv_pointer(csv_file):
+    """Reads the CSV file and returns its content as a pandas DataFrame."""
+    if not os.path.isfile(csv_file):
+        raise FileNotFoundError(f"The file {csv_file} does not exist.")
+
+    return pd.read_csv(csv_file)
+
+def CheckForTeardown(csv_content, noise_threshold=0.1):
+    """Checks if the Guard routine should stop based on T41 values."""
+    # Get the last three T41 values
+    J2_value = csv_content['J2'].iloc[-1:].values
+
+    # Check if the current value differs significantly from both previous values
+    if J2_value[0] <=50:
+        print("Teardown condition met: Less than 50 Pressure in J2, returning to rule")
+        return True
+
+    return False
+
+
+def CheckForFlowDrop(csv_content):
+
+    if 'P1F' not in csv_content or len(csv_content['P1F']) < 2:
+        print("Insufficient data for P1F to detect a drop.")
+        return False
+
+    # Get the last non-zero P1F values
+    P1F_values = csv_content['P1F'][csv_content['P1F'] > 0].iloc[-2:].values
+
+    # Check if we have at least two valid values
+    if len(P1F_values) < 2:
+        print("Not enough non-zero P1F values to detect a drop.")
+        return False
+
+    # Calculate the drop
+    drop = P1F_values[0] - P1F_values[1]
+
+    print("&&&&&&&&&&&&&&&&&")
+    print(f"P1F_values[0]: {P1F_values[0]}, P1F_values[1]: {P1F_values[1]}")
+    print(f'drop: {drop}')
+    print("&&&&&&&&&&&&&&&&&")
+
+    # Check if the drop is within the specified range (10 to 150)
+    if 15 <= drop <= 150:
+        print(f"Flow drop detected: {drop}")
+        return True
+    else:
+        print(f"No significant flow drop detected. Drop: {drop}")
+
+    return False
+
+
+
+
+
+
+
+def AlgoRun(cacheDict,LocalSensorsValues):
+    STATE_FILE = "state.txt"  # File to record the current state
+
+    # Path to the CSV file
+    print('LocalSensorsValues:', LocalSensorsValues)
+    #print(f'The type of LocalSensorsValues is {type(LocalSensorsValues)}')
+    print('cacheDict:', cacheDict)
+    #print(f'The type of cacheDict is {type(cacheDict)}')
+    PLCNAME='PLC4'
+    prefix = 'examples/MiniAnyTownForPaper/LocalPLCDef/PLCAlgos/'
+    csv_file = prefix + f'{PLCNAME}/data.csv'
+
+    DataDict = {sensor: value for (sensor, _), value in LocalSensorsValues.items()}
+    DataDict.update(cacheDict)  # Merge cacheDict values into DataDict
+
+    """
+    J2	P1F	V_UF	P1	T41
+0	0	0	1	3.05100011825562
+69.1993172472623	213.393503019295	233.338957218621	1	3.19157791137695
+69.2178528705034	212.416547842605	232.284307747932	1	3.3316547870636
+69.2178528705034	212.416547842605	232.284307747932	1	3.3316547870636
+69.2363559395635	211.441308495763	231.230533264579	1	3.47122406959534
+69.2548255611276	210.467832062636	230.177697509362	1	3.61028003692627
+"""
+
+
+
+    # Read the CSV and get a pointer to its content
+    if os.path.exists(csv_file):
+        csv_content = get_csv_pointer(csv_file)
+
+        # Check if the last row matches the cacheDict
+        if not csv_content.empty:
+            last_row = csv_content.iloc[-1].to_dict()
+            if all(last_row.get(key) == value for key, value in cacheDict.items()): #
+                print("The last row's iteration matches the cacheDict. Skipping update.")
+                return 'rule'
+
+    # Update the CSV file with the cacheDict
+
+
+    update_csv_with_cache(DataDict, csv_file)
+    # Reload the CSV after the update
+    csv_content = get_csv_pointer(csv_file)
+
+
+    # Check if Guard routine is active
+
+    if os.path.exists(STATE_FILE):
+        print("State file detected.")
+        if CheckForTeardown(csv_content) == True:
+            os.remove(STATE_FILE)  # Reset state
+            print("Teardown condition met. State reset to 'rule'.")
+            return 'rule'
+        print('returning closed')
+        return 'closed', True
+
+
+    # Check for DoS attack and start Guard routine if detected
+    if CheckForFlowDrop(csv_content):
+        with open(STATE_FILE, 'w') as f:
+            f.write('closed')  # Persist the 'close' state
+        print("Flow drop detected. Setting state to 'closed'.")
+        return 'closed', True
+
+    print("No Drop flow detected.")
+    return 'rule'
+
+
+
+
+

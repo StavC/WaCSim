@@ -1,0 +1,57 @@
+attacks:
+  network_attacks:
+  - direction: destination
+    name: plc4AttackerUnit
+    target: PLC4
+    trigger:
+      end: 255
+      start: 155
+      type: time
+    type: simple_dos
+decision_maker_per_plc:
+- actuators:
+  - decision_maker: examples/MiniAnyTownForPaper/Final/LocalPLCDef/PLCAlgos/V41_Algo.py
+    name: V41
+  name: PLC2
+- actuators:
+  - decision_maker: examples/MiniAnyTownForPaper/Final/LocalPLCDef/PLCAlgos/V42_Algo.py
+    name: V42
+  name: PLC3
+- actuators:
+  - decision_maker: examples/MiniAnyTownForPaper/Final/LocalPLCDef/PLCAlgos/P1_Algo.py
+    name: P1
+  name: PLC4
+demand: pdd
+demand_patterns: demands_MiniAnyTown.csv
+inp_file: MiniAnyTown.inp
+iterations: 400
+log_level: debug
+mode: plccontrol
+network_topology_type: complex
+output_path: DoS_PLC4_PLCC_Guard
+plcs:
+- actuators:
+  - P79
+  name: PLC1
+- actuators:
+  - V41
+  name: PLC2
+  sensors:
+  - T41
+  - V41F
+  - J21
+- actuators:
+  - V42
+  name: PLC3
+  sensors:
+  - T42
+  - V42F
+  - J19
+- actuators:
+  - P1
+  name: PLC4
+  sensors:
+  - J2
+  - P1F
+  - V_UF
+simulator: epynet

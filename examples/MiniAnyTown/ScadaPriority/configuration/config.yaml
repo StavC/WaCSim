@@ -1,0 +1,44 @@
+decision_maker_per_plc:
+- actuators:
+  - decision_maker: scada
+    name: P79
+  name: PLC1
+- actuators:
+  - decision_maker: examples/MiniAnyTown/PLC_Algo/PLC4_P1_Algo.py
+    name: P1
+  name: PLC4
+decision_maker_per_scadacommand:
+- actuators:
+  - decision_maker: examples/MiniAnyTown/PLC_Algo/Scada_P79_Algo.py
+    name: P79
+  name: PLC1
+- actuators:
+  - decision_maker: rule
+    name: P1
+  name: PLC4
+demand: pdd
+demand_patterns: demands_MiniAnyTown.csv
+inp_file: MiniAnyTown.inp
+iterations: 20
+log_level: debug
+mode: hybridcontrol
+network_topology_type: complex
+output_path: ScadaPriority
+plcs:
+- actuators:
+  - P79
+  name: PLC1
+- name: PLC2
+  sensors:
+  - T41
+- name: PLC3
+  sensors:
+  - T42
+- actuators:
+  - P1
+  name: PLC4
+- name: PLCJunc2
+  sensors:
+  - J2
+  - J13
+simulator: epynet

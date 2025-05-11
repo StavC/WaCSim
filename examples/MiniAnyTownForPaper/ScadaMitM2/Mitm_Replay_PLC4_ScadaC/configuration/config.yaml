@@ -1,0 +1,67 @@
+attacks:
+  network_attacks:
+  - concealment_data:
+      capture_end: 30
+      capture_start: 10
+      replay_start: 40
+      type: network_replay
+    name: plc2_Scada_replay
+    tags:
+    - offset: 5
+      tag: T41
+    target: PLC2
+    trigger:
+      end: 200
+      start: 5
+      type: time
+    type: concealment_mitm
+decision_maker_per_plc:
+- actuators:
+  - decision_maker: scada
+    name: P79
+  name: PLC1
+- actuators:
+  - decision_maker: scada
+    name: P1
+  name: PLC4
+decision_maker_per_scadacommand:
+- actuators:
+  - decision_maker: rule
+    name: P79
+  name: PLC1
+- actuators:
+  - decision_maker: rule
+    name: P1
+  name: PLC4
+demand: pdd
+demand_patterns: demands_MiniAnyTown.csv
+inp_file: MiniAnyTown.inp
+iterations: 300
+log_level: debug
+mode: hybridcontrol
+network_topology_type: complex
+output_path: Mitm_Replay_PLC4_ScadaC
+plcs:
+- actuators:
+  - P79
+  name: PLC1
+- name: PLC2
+  sensors:
+  - T41
+- name: PLC3
+  sensors:
+  - T42
+- actuators:
+  - P1
+  name: PLC4
+- name: JPLC1
+  sensors:
+  - J2
+  - J13
+- name: VPLC1
+  sensors:
+  - V1F
+- name: VPLC2
+  sensors:
+  - V2F
+simulator: epynet

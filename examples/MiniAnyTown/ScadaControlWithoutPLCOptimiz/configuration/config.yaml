@@ -1,0 +1,22 @@
+demand: pdd
+demand_patterns: demands_MiniAnyTown.csv
+inp_file: MiniAnyTown.inp
+iterations: 288
+log_level: debug
+mode: scadacontrol
+network_topology_type: simple
+output_path: ScadaControl
+plcs:
+- actuators:
+  - P79
+  name: PLC1
+- name: PLC2
+  sensors:
+  - T41
+- name: PLC3
+  sensors:
+  - T42
+- actuators:
+  - P1
+  name: PLC4
+simulator: epynet
