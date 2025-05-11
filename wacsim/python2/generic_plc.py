@@ -495,7 +495,7 @@ class GenericPLC(BasePLC):
             if self.mode in ('scadacontrol', 'hybridcontrol'):
                 while not (self.scada_get_sync(25) or self.scada_get_sync(3) or self.get_sync(3)):
                     pass
-                self.logger.debug(f'PLC {self.intermediate_plc["name"]} received SCADA sync')
+                #self.logger.debug(f'PLC {self.intermediate_plc["name"]} received SCADA sync')
                 self.update_cache_flag = True
                 self.plc_recieved_scada = True
                 self.update_scadaCache(self.PLC_CACHE_UPDATE_TIME)

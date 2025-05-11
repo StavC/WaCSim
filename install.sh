@@ -46,7 +46,7 @@ sudo python3 -m pip install .
 
 # Mininet from source
 cd ~
-git clone --depth 1 -b 2.3.1b4 https://github.com/StavC/mininet.git || git -C mininet pull
+git clone --depth 1 https://github.com/StavC/mininet.git || git -C mininet pull
 cd mininet
 sudo PYTHON=python3 ./util/install.sh -fnv
 
