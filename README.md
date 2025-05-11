@@ -1,19 +1,19 @@
-# Digital HydrAuLic SIMulator (DHALSIM)
-_A Digital Twin for Water Distribution Systems. A work by the SUTD Critical Infrastructure Systems Lab, TU Delft Department of Water Management, CISPA, and iTrust_
+# Water Computer Simulation (WaCSim)
+An open-source digital twin for water distribution systems, built upon [DHALSIM](https://github.com/Critical-Infrastructure-Systems-Lab/DHALSIM) with extended capabilities.
 
-DHALSIM uses the [WNTR](https://wntr.readthedocs.io/en/latest/index.html) EPANET wrapper to simulate the behaviour of water distribution systems. In addition, DHALSIM uses Mininet and MiniCPS to emulate the behavior of industrial control system controlling a water distribution system. This means that in addition to physical data, DHALSIM can also provide network captures of the PLCs, SCADA server, and other network and industrial devices present in the a water distribution system.
+WaCSim utilizes multiple open-source tools to simulate both the hydraulic and cyber layer of the simulation. For the hydraulic layer, WaCSim relies upon EPANET, an open-source hydraulic solver for water distribution systems. EPANET is available with two simulators, [WNTR](https://github.com/USEPA/WNTR) and [epynet](https://github.com/Vitens/epynet). For the cyber layer, WaCSim relies upon both [mininet](https://github.com/mininet/mininet) and [miniCPS](https://github.com/scy-phy/minicps) to simulate the common industrial system and the overall network communication between SCADA and PLCs.  
 
-DHALSIM was presented in the ICSS Workshop in ACSAC'20, with the paper: [Co-Simulating Physical Processes and Network Data for High-Fidelity Cyber-Security Experiments](https://dl.acm.org/doi/abs/10.1145/3442144.3442147)
-
-Two papers in the Journal of Water Resources Planning and Management explain in detail DHALSIM architecture, features, and capabilities: [High-fidelity cyber and physical simulation of water distribution systems. I: Models and Data](https://ascelibrary.org/doi/abs/10.1061/JWRMD5.WRENG-5853) and [High-fidelity cyber and physical simulation of water distribution systems. II: Enabling cyber-physical attack localization](https://ascelibrary.org/doi/abs/10.1061/JWRMD5.WRENG-5854)
- 
+# Features
+WaCSim is a highly customizable digital twin. The following are some capabilities of WaCSim:
+1. Customizable network architecture, with the ability to control the actuators, sensors, and dependent sensors for each PLC and for any water distribution system. 
+2. Complex PLC and SCADA behavior via user-made scripts.
+3. A variety of attack types such as various Man in the Middle variants and denial of service. Each attack is detailed in the [Attack Config Options](doc/attack_config_options) section of the documentation.
+4. Ability to simulate network losses, delays, jitters, and sensor noise for each PLC and SCADA.
+5. Many more configuration options, detailed in the [Experiment Config Options](doc/experiment_config_docs.rst) section of the documentation.
 ## Installation
 
-In order to offer a simple installation we have included an installation script which will install DHALSIM on an Ubuntu 20.04 machine. This script is located in the root of the repository and can be run with ```./install.sh```.
+Installing WaCSim requires either access to a Linux machine or the installation of a virtual machine. Installation, including with a virtual machine, is covered in detail on the [Installation](doc/installation.rst) docs page.
 
 ## Running
 
-DHALSIM can be run using the command ```sudo dhalsim path/to/config.yaml```.
-
-Replacing the text between "< >" with the path to one example topology or your own configuration files. For example, for the anytown example, you'd use:
-```sudo dhalsim <examples/anytown_topology/anytown_config.yaml>```
+Any WacSim config file can be run by opening up a terminal in the folder the config file is located in and running ```sudo wacsim <config name>.yaml```. Additionally, one can also provide an absolute or relative path to the config file. More information on how to get started with WaCSim is provided in the [Getting Started](doc/getting_started.rst) docs page.
