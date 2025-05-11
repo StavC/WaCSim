@@ -143,7 +143,6 @@ class InputParser:
                     "action": action_aux
                 })
 
-                #self.logger.debug('control:\n' + str(controls[-1]))
 
             if str(child.getChild(8)) == 'TIME':
                 # This is a TIME control

@@ -198,7 +198,7 @@ class GeneralReadmeGenerator:
         self.master_time = master_time
         self.wn = wn
         self.readme_path = self.get_readme_path()
-        self.version = pkg_resources.require('dhalsim')[0].version
+        self.version = pkg_resources.require('wacsim')[0].version
         self.hydraulic_timestep = step
 
     def get_value(self, parameter: str) -> str:
@@ -335,7 +335,7 @@ class GeneralReadmeGenerator:
 
     def get_versioning(self) -> str:
         """About this experiment and DHALSIM version."""
-        return ("\n\n## About this experiment\n\nRan with DHALSIM v{version}."
+        return ("\n\n## About this experiment\n\nRan with wacsim v{version}."
                 .format(version=str(self.version)))
 
     def get_standalone_iteration_information(self) -> str:

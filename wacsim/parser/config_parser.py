@@ -931,11 +931,11 @@ class ConfigParser:
     def generate_temporary_dirs(self):
         """Generates the temporary directory and yaml/db paths"""
         # Create temp directory and intermediate yaml files in /tmp/
-        temp_directory = tempfile.mkdtemp(prefix='dhalsim_')
+        temp_directory = tempfile.mkdtemp(prefix='wacsim_')
         # Change read permissions in tempdir
         os.chmod(temp_directory, 0o775)
         self.yaml_path = Path(temp_directory + '/intermediate.yaml')
-        self.db_path = temp_directory + '/dhalsim.sqlite'
+        self.db_path = temp_directory + '/wacsim.sqlite'
 
     def generate_intermediate_yaml(self):
         """Writes the intermediate.yaml file to include all options specified in the config, the plc's and their
@@ -960,7 +960,7 @@ class ConfigParser:
         # Simulator to be used, it can be EPANET WNTR or EPANET epynet
         yaml_data['simulator'] = self.data['simulator']
 
-        # Add DHALSIM mode to intermediate yaml file 3 modes: plccontrol, scadacontrol, hybridcontrol
+        # Add mode to intermediate yaml file 3 modes: plccontrol, scadacontrol, hybridcontrol
         yaml_data['mode'] = self.data['mode']
 
         #check if the dat is present in the config file if not leave blank

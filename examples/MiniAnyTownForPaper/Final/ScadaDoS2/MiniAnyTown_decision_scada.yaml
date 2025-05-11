@@ -1,9 +1,0 @@
-- name: PLC1
-  actuators:
-    - name: P79
-      decision_maker: rule
-- name: PLC4
-  actuators:
-    - name: P1
-      decision_maker: examples/MiniAnyTownForPaper/Final/ScadaDoS2/ScadaAlgos/Scada_P1_Algo.py
-

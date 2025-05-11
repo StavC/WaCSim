@@ -1,9 +1,0 @@
-inp_file: anytown_map.inp
-output_path: output
-network_topology_type: complex
-plcs: !include anytown_plcs.yaml
-saving_interval: 1
-simulator: wntr
-demand: pdd
-attacks: !include anytown_dos_source.yaml
-demand_patterns: demands_anytown_small.csv

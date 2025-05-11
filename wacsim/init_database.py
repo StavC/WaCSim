@@ -40,7 +40,7 @@ class DatabaseInitializer:
                     cur.execute("INSERT INTO plant VALUES (?, 1, ?);",
                                 (actuator["name"], initial_state,))
                     if self.mode=='scadacontrol' or self.mode=='hybridcontrol':
-                        #STAV 26.3 added to initialize the actuators Scada Control in the database
+                        # Initialize ScadaCommand entries for hybrid or SCADA control modes
                         cur.execute("INSERT INTO plant VALUES (?, 1, ?);",
                                     (f'ScadaCommand_{actuator["name"]}', initial_state,))
 

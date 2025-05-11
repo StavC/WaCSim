@@ -70,7 +70,7 @@ class Runner():
         self.automatic_run.wait()
 
 def main():
-    parser = argparse.ArgumentParser(description='Executes DHALSIM based on a config file')
+    parser = argparse.ArgumentParser(description='Executes Wacsim based on a config file')
     parser.add_argument(dest="config_file",
                         help="config file and its path", metavar="FILE",
                         type=lambda x: is_valid_file(parser, x))

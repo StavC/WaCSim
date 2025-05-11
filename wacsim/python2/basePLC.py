@@ -29,9 +29,6 @@ class BasePLC(PLC):
             except Exception:
                 self.logger.error("Exception trying to get the tag.")
                 continue
-        #self.logger.debug("Sending values: %s", values)
-        #self.logger.debug("Sending to: %s", self.send_adddress)
-        #self.logger.debug("Sending tags: %s", self.tags)
 
 
         self.send_multiple(self.tags, values, self.send_adddress)

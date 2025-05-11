@@ -148,7 +148,7 @@ class GenericPLC(BasePLC):
 
         self.update_cache_flag = False
         self.plcs_ready = False
-        self.plc_recieved_scada = False
+        self.plc_received_scada = False
         self.plc_run = True
 
         self.do_super_construction(plc_protocol, state)
@@ -453,129 +453,161 @@ class GenericPLC(BasePLC):
 
     def main_loop(self, sleep=0.5, test_break=False):
         """
-        The main loop of a PLC. In here all the controls will be applied.
-        Freshness of both local and SCADA caches is now tracked per iteration using DataFrames.
+        The main loop executed by each PLC.
+
+        Depending on the control mode (`plccontrol`, `scadacontrol`, or `hybridcontrol`), the PLC:
+        - Waits for synchronization flags.
+        - Updates its tag cache or SCADA cache.
+        - Applies local, SCADA, or hybrid control logic.
+        - Executes any configured attacks.
+        - Logs and stores values for later CSV export.
+
+        This function is run continuously unless terminated externally or `test_break=True`.
         """
-        self.logger.debug(self.intermediate_plc['name'] + ' enters main_loop')
+        self.logger.debug(f'{self.intermediate_plc["name"]} enters main_loop')
+
         while self.plc_run:
-            if self.mode == 'plccontrol' or self.mode == 'hybridcontrol':
+            # In PLC and Hybrid modes, mark this PLC as ready and enable cache updates (only once)
+            if self.mode in ('plccontrol', 'hybridcontrol'):
                 if not self.plcs_ready:
                     self.plcs_ready = True
                     self.update_cache_flag = True
+
+            # Wait for plant to reach sync stage 0
             while not self.get_sync(0):
                 pass
+
+            # Send sensor and actuator values via ENIP to network
             self.send_system_state()
+
+            # Indicate PLC has sent values (sync stage 1)
             self.set_sync(1)
+
+            # Wait for plant to allow receiving remote values (sync stage 2)
             while not self.get_sync(2):
                 pass
-            if self.mode!='scadacontrol':
 
+            # In all modes *except* SCADA-only, refresh remote PLC tag cache
+            if self.mode != 'scadacontrol':
                 self.update_cache(self.PLC_CACHE_UPDATE_TIME)
-            if self.mode == 'plccontrol' or self.mode == 'hybridcontrol':
-                current_iteration = self.get_master_clock()
-                # Wait until all tags have been updated. TODO, set max attempts
-            if self.mode == 'scadacontrol' or self.mode == 'hybridcontrol':
+
+            # Hybrid and SCADA modes wait for SCADA sync (3 or 25)
+            if self.mode in ('scadacontrol', 'hybridcontrol'):
                 while not (self.scada_get_sync(25) or self.scada_get_sync(3) or self.get_sync(3)):
                     pass
-                self.logger.debug(f'PLC {self.intermediate_plc["name"]} is here again....')
+                self.logger.debug(f'PLC {self.intermediate_plc["name"]} received SCADA sync')
                 self.update_cache_flag = True
                 self.plc_recieved_scada = True
                 self.update_scadaCache(self.PLC_CACHE_UPDATE_TIME)
-                current_iteration = self.get_master_clock()
+
+            # Read local sensor values and record them in the cache
             LocalSensorsValues = self.get_system_state()
             clock = self.get_master_clock()
             for sensor in LocalSensorsValues.keys():
                 self.write_cache.loc[clock, sensor[0]] = LocalSensorsValues[sensor]
+
+            # Handle control logic based on mode
             if self.mode == 'plccontrol':
                 SkipNextActuatorList = set()
-            if self.mode == 'plccontrol':
                 for control in self.controls:
-                    if control.actuator in self.decision_maker:
-                        Action = self.decision_maker[control.actuator]
-                    else:
-                        Action = 'rule'
+                    Action = self.decision_maker.get(control.actuator, 'rule')
                     if Action == 'rule' or not Action:
-                        self.logger.debug(f'PLC {self.intermediate_plc["name"]} applied {control} because of "PLC" value or no decision maker')
+                        self.logger.debug(f'{self.intermediate_plc["name"]} applies PLC rule: {control}')
                         control.apply(self)
-                    else:
-                        if control.actuator in SkipNextActuatorList:
-                            continue
+                    elif control.actuator not in SkipNextActuatorList:
+                        # Execute custom algorithm defined in file
+                        self.logger.debug(
+                            f'{self.intermediate_plc["name"]} executing custom algorithm for {control.actuator}')
+                        ScriptName = Action.split('/')[-1]
+                        spec = importlib.util.spec_from_file_location(ScriptName, Action)
+                        module = importlib.util.module_from_spec(spec)
+                        sys.modules[ScriptName] = module
+                        spec.loader.exec_module(module)
+                        AlgoRun = getattr(module, 'AlgoRun')
+                        result = AlgoRun(self.cache, LocalSensorsValues)
+
+                        if isinstance(result, tuple):
+                            result, SkipNextControlActuator = result
+                            if SkipNextControlActuator:
+                                SkipNextActuatorList.add(control.actuator)
+
+                        self.logger.debug(f'Result from custom algorithm: {result}')
+                        if result == 'rule':
+                            control.apply(self)
                         else:
-                            self.logger.debug(f'PLC {self.intermediate_plc["name"]} applied {control} because of custom algo')
-                            ScriptName = Action.split('/')[-1]
-                            spec = importlib.util.spec_from_file_location(ScriptName, Action)
-                            module = importlib.util.module_from_spec(spec)
-                            sys.modules[ScriptName] = module
-                            spec.loader.exec_module(module)
-                            AlgoRun = getattr(module, 'AlgoRun')
-                            result = AlgoRun(self.cache, LocalSensorsValues)
-                            if isinstance(result, tuple):
-                                result, SkipNextControlActuator = result
-                                if SkipNextControlActuator:
-                                    SkipNextActuatorList.add(control.actuator)
-                            self.logger.debug(f'+++++++++++++ the result from the custom algo IN PLC is:  {result} ++++++++++++++++++')
-                            if result == 'rule':
-                                control.apply(self)
-                            else:
-                                control.applyHybridDecision(self, result, None)
+                            control.applyHybridDecision(self, result, None)
+
             elif self.mode == 'scadacontrol':
+                # Apply SCADA command directly
                 for control in self.controls:
                     CurrentAction = self.scadaCache[f'ScadaCommand_{control.actuator}']
                     control.applyScadaDecision(self, CurrentAction)
+
             elif self.mode == 'hybridcontrol':
+                # Use PLC, SCADA, or custom decision maker for each actuator
                 SkipNextActuatorList = set()
-                print(f'self cache is {self.cache}')
-                print(f'LocalSensorsValues is {LocalSensorsValues}')
-                print(f'scadaCache is {self.scadaCache}')
+                print(f'self.cache = {self.cache}')
+                print(f'LocalSensorsValues = {LocalSensorsValues}')
+                print(f'scadaCache = {self.scadaCache}')
                 for control in self.controls:
-                    if control.actuator in self.decision_maker:
-                        HybridAction = self.decision_maker[control.actuator]
-                    else:
-                        HybridAction = 'rule'
+                    HybridAction = self.decision_maker.get(control.actuator, 'rule')
+
                     if HybridAction == 'rule':
-                        print(f'PLC {self.intermediate_plc["name"]} applied PLC command')
+                        print(f'{self.intermediate_plc["name"]} applies PLC rule: {control}')
                         control.apply(self)
                     elif HybridAction == 'scada':
-                        print(f'PLC {self.intermediate_plc["name"]} Scada Command')
+                        print(f'{self.intermediate_plc["name"]} applies SCADA command')
                         CurrentAction = self.scadaCache[f'ScadaCommand_{control.actuator}']
                         control.applyScadaDecision(self, CurrentAction)
-                    elif HybridAction == 'open':
-                        control.applyScadaDecision(self, 1.0)
-                    elif HybridAction == 'closed':
-                        control.applyScadaDecision(self, 0.0)
-                    else:
-                        if control.actuator in SkipNextActuatorList:
-                            continue
+                    elif HybridAction in ('open', 'closed'):
+                        control.applyScadaDecision(self, 1.0 if HybridAction == 'open' else 0.0)
+                    elif control.actuator not in SkipNextActuatorList:
+                        self.logger.debug(
+                            f'{self.intermediate_plc["name"]} executing custom hybrid algorithm for {control.actuator}')
+                        ScriptName = HybridAction.split('/')[-1]
+                        spec = importlib.util.spec_from_file_location(ScriptName, HybridAction)
+                        module = importlib.util.module_from_spec(spec)
+                        sys.modules[ScriptName] = module
+                        spec.loader.exec_module(module)
+                        AlgoRun = getattr(module, 'AlgoRun')
+                        result = AlgoRun(self.cache, LocalSensorsValues, self.scadaCache)
+
+                        if isinstance(result, tuple):
+                            result, SkipNextControlActuator = result
+                            if SkipNextControlActuator:
+                                SkipNextActuatorList.add(control.actuator)
+
+                        self.logger.debug(f'Hybrid algo result: {result}')
+                        if result == 'rule':
+                            control.apply(self)
                         else:
-                            self.logger.debug(f'PLC {self.intermediate_plc["name"]} ,trying to run the custom algo for {control.actuator}, his action is {HybridAction} and self.decision_maker is {self.decision_maker}')
-                            ScriptName = HybridAction.split('/')[-1]
-                            spec = importlib.util.spec_from_file_location(ScriptName, HybridAction)
-                            module = importlib.util.module_from_spec(spec)
-                            sys.modules[ScriptName] = module
-                            spec.loader.exec_module(module)
-                            AlgoRun = getattr(module, 'AlgoRun')
-                            result = AlgoRun(self.cache, LocalSensorsValues, self.scadaCache)
-                            if isinstance(result, tuple):
-                                result, SkipNextControlActuator = result
-                                if SkipNextControlActuator:
-                                    SkipNextActuatorList.add(control.actuator)
-                            self.logger.debug(f'+++++++++++++ the result from the custom algo is:  {result} ++++++++++++++++++')
-                            if result == 'rule':
-                                control.apply(self)
-                            else:
-                                control.applyHybridDecision(self, result, self.scadaCache[f'ScadaCommand_{control.actuator}'])
+                            control.applyHybridDecision(self, result,
+                                                        self.scadaCache[f'ScadaCommand_{control.actuator}'])
+
+            # Apply any attacks configured for this PLC
             for attack in self.attacks:
                 attack.apply(self)
+
+            # Log this iteration's values into CSV cache
             master_time = datetime.now()
             self.write_cache.loc[clock, 'iteration'] = clock
             self.write_cache.loc[clock, 'timestamp'] = master_time
+
             for scada_tag, value in self.scadaCache.items():
                 self.write_cache.loc[clock, scada_tag] = value
+
             for tag in self.cache.keys():
                 self.write_cache.loc[clock, tag] = self.cache[tag]
-            if 'saving_interval' in self.intermediate_yaml and clock != 0 and clock % self.intermediate_yaml['saving_interval'] == 0:
+
+            # Periodically flush to disk
+            if 'saving_interval' in self.intermediate_yaml and clock != 0 and clock % self.intermediate_yaml[
+                'saving_interval'] == 0:
                 self.write_output()
+
+            # Indicate this PLC has finished applying logic (sync stage 3)
             self.set_sync(3)
+
+            # Exit after one loop if testing
             if test_break:
                 break
 

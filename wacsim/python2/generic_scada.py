@@ -89,10 +89,6 @@ class GenericScada(BasePLC):
         self.decision_maker = {}
 
         if 'decision_maker_per_scadacommand' in self.intermediate_yaml:
-            self.logger.debug("%%%%^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
-            """[{'actuators': [{'name': 'P79', 'tie_breaker': 'plc'}], 'name': 'PLC1'}, 
-            {'actuators': [{'name': 'P1', 'tie_breaker': 'scada'}], 'name': 'PLC4'}]
-            """
 
             for plc in self.intermediate_yaml['decision_maker_per_scadacommand']:
 
@@ -100,8 +96,6 @@ class GenericScada(BasePLC):
                         # Add the actuator name and tie_breaker to tie_solver
                         self.decision_maker[actuator['name']] = actuator['decision_maker']
 
-        self.logger.debug(f'Scada has decision_maker: {self.decision_maker}')
-        self.logger.debug("%%%%^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
 
         for PLC in self.intermediate_yaml['plcs']:
             if 'sensors' not in PLC:
@@ -112,14 +106,12 @@ class GenericScada(BasePLC):
             if self.mode=='scadacontrol' or self.mode=='hybridcontrol':
                 if 'controls' in PLC:
                     for control in PLC['controls']:
-                        self.logger.debug(control)
+                        #self.logger.debug(control)
                         self.controls.append(control)
 
 
         self.controls = create_controls(self.controls) # Stav
 
-        #self.logger.debug(self.intermediate_yaml)
-        self.logger.debug('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
 
         self.update_cache_flag = False
         self.plcs_ready = False
@@ -137,8 +129,6 @@ class GenericScada(BasePLC):
         self.updated_plc = pd.DataFrame(index=range(self.iterations+1), columns=ip_list).fillna(False)
         self.scada_run = True
 
-
-
         self.do_super_construction(scada_protocol, state)
 
 
@@ -153,7 +143,6 @@ class GenericScada(BasePLC):
         aux_scada_tags = []
         for PLC in self.intermediate_yaml['plcs']:
 
-            # We were having ordering issues by adding it as a set. Probably could be done in a more pythonic way
             if 'sensors' in PLC:
                 for sensor in PLC['sensors']:
                     if sensor not in aux_scada_tags:
@@ -169,7 +158,6 @@ class GenericScada(BasePLC):
                     if f'ScadaCommand_{actuator["name"]}' not in aux_scada_tags:
                         aux_scada_tags.append(f'ScadaCommand_{actuator["name"]}')
 
-        # self.logger.debug('SCADA tags: ' + str(aux_scada_tags))
         return aux_scada_tags
 
     @staticmethod
@@ -190,7 +178,7 @@ class GenericScada(BasePLC):
             for sensor in plc['sensors']:
                 if sensor != "":
                     real_tags.append((sensor, 1, 'REAL'))
-                    real_tags.append((f'{sensor}S', 1, 'REAL')) # STAV 7.4 adding the S to the name so that we can do mitm on the value that is sent to the PLCs by the scada aswell
+                    real_tags.append((f'{sensor}S', 1, 'REAL')) #
             for actuator in plc['actuators']:
                 if actuator != "":
                     real_tags.append((actuator, 1, 'REAL'))
@@ -198,9 +186,6 @@ class GenericScada(BasePLC):
             for actuator in self.intermediate_yaml['actuators']:
                     real_tags.append((f'ScadaCommand_{actuator["name"]}', 1, 'REAL'))
 
-        self.logger.debug("--------SCADA real tags-----------")
-        self.logger.debug('SCADA real tags: ' + str(real_tags))
-        self.logger.debug("--------SCADA real tags-----------")
 
         return tuple(real_tags)
 
@@ -408,126 +393,126 @@ class GenericScada(BasePLC):
 
             self.clock = int(self.get_master_clock())
             clock = self.clock    
-            self.logger.debug(self.clock)
+            #self.logger.debug(self.clock)
             self.set_sync(1)
             while not self.get_sync(2):
                 pass
             if not self.plcs_ready:
                 self.plcs_ready = True
-                self.logger.debug("SCADA starting update cache thread")
+                #self.logger.debug("SCADA starting update cache thread")
                 lock = threading.Lock()
             self.update_cache(lock, self.SCADA_CACHE_UPDATE_TIME)
                 
-            self.logger.debug('Finished waiting')
+            #self.logger.debug('Finished waiting')
             master_time = datetime.now()
             self.cache.loc[self.clock, 'timestamp'] = master_time
 
             if self.mode=='scadacontrol' or self.mode=='hybridcontrol':
-                #PLCTags = self.cache.loc[clock]
                 ControlsActions = []
-                SkipNextActuatorList=set() # This is to keep track of the actuators that have been applied this round, so if we use a custom algorithm we don't apply the same actuator twice as opposed to a rule based system which has two rules for one actuator and it check it twice
-                for control in self.controls:
-                    """self.logger.debug(f'This control is dependent on: {control.dependant}')
-                    self.logger.debug(f'This control is dependent on: {control.value}')
-                    self.logger.debug(f'This control is dependent on: {control.actuator}')
-                    self.logger.debug(f'This control is dependent on: {control.action}')"""
+                SkipNextActuatorList = set()  # Tracks actuators that have already been handled in this iteration.  Prevents duplicate application when multiple controls target the same actuator, especially when a custom algorithm overrides default rule-based logic.
 
+                for control in self.controls:
+
+                    # Determine the decision-making strategy for this actuator
                     if control.actuator in self.decision_maker:
                         HybridAction = self.decision_maker[control.actuator]
                     else:
                         HybridAction = 'rule'
 
+                    # Apply rule-based control if specified
                     if HybridAction == 'rule':
-                        ControlsActions.append((control.actuator,control.getScadaDecision(self.cache.loc[clock][control.dependant],self.get_master_clock())))
+                        decision = control.getScadaDecision(
+                            self.cache.loc[clock][control.dependant],
+                            self.get_master_clock()
+                        )
+                        ControlsActions.append((control.actuator, decision))
                     else:
-                        """Input: 5.0
-                                timestamp           2024-07-23 17:37:31.270250
-                                P79                                        1.0
-                                ScadaCommand_P79                           NaN
-                                ScadaCommand_P1                            NaN
-                                T41                                   4.269386
-                                T42                                   3.857387
-                                P1                                         1.0
-                                Output: closed | open
-                                """
-
+                        # If custom algorithm should decide, avoid repeated control of same actuator
                         if control.actuator in SkipNextActuatorList:
                             continue
+
+                        # Load and run the custom decision algorithm script
+                        ScriptName = HybridAction.split('/')[-1]
+                        spec = importlib.util.spec_from_file_location(ScriptName, HybridAction)
+                        module = importlib.util.module_from_spec(spec)
+                        sys.modules[ScriptName] = module
+                        spec.loader.exec_module(module)
+                        AlgoRun = getattr(module, 'AlgoRun')
+                        result = AlgoRun(
+                            self.cache.loc[clock])  # Result: 'rule', 'open', 'closed', or (result, skip_flag)
+
+                        # If result is a tuple, unpack and track if this actuator should be skipped further this round
+                        if isinstance(result, tuple):
+                            result, SkipNextControlActuator = result
+                            if SkipNextControlActuator:
+                                SkipNextActuatorList.add(control.actuator)
+
+                        # Apply rule-based or algorithm-based decision
+                        if result == 'rule':
+                            decision = control.getScadaDecision(
+                                self.cache.loc[clock][control.dependant],
+                                self.get_master_clock()
+                            )
+                            ControlsActions.append((control.actuator, decision))
                         else:
-                            ScriptName = HybridAction.split('/')[-1]
-                            spec = importlib.util.spec_from_file_location(ScriptName, HybridAction)
-                            module = importlib.util.module_from_spec(spec)
-                            sys.modules[ScriptName] = module
-                            spec.loader.exec_module(module)
-                            AlgoRun = getattr(module, 'AlgoRun')
-                            result = AlgoRun(self.cache.loc[clock]) # Result is either 'closed' or 'open' or 'rule'
+                            # Append final decision from algorithm
+                            ControlsActions.append((control.actuator, result, self.get_master_clock()))
 
-                            if isinstance(result, tuple):
-                                result,SkipNextControlActuator= result
-                                if SkipNextControlActuator:
-                                    SkipNextActuatorList.add(control.actuator)
-
-                            if result == 'rule':
-                                ControlsActions.append((control.actuator,control.getScadaDecision(self.cache.loc[clock][control.dependant],self.get_master_clock())))
-                            else:
-                                ControlsActions.append((control.actuator,result,self.get_master_clock()))  # send the value of the dependant tag to the control to make a Scada decision
+                    # In hybrid control, send the raw sensor value to the PLC as well
+                    if self.mode == 'hybridcontrol':
+                        # Sends sensor value to PLC under a modified tag (e.g., T101 → T101S) to support possible MiTM scenarios
+                        self.send(
+                            (f'{control.dependant}S', 1),
+                            self.cache.loc[clock][control.dependant],
+                            self.intermediate_yaml['scada']['local_ip']
+                        )
 
 
+                # Apply the SCADA decisions by writing them to the shared database and broadcasting to PLCs
+                for action in ControlsActions:
+                    # Convert symbolic actuator action into numeric values
+                    if action[1] == 'closed':
+                        self.set((f'ScadaCommand_{action[0]}', 1), 0)
+                    elif action[1] == 'open':
+                        self.set((f'ScadaCommand_{action[0]}', 1), 1)
 
-                    if self.mode=='hybridcontrol': # STAV 7.4 sending the value of the dependant tag so the PLCs can also get it and make a decision
-                        """self.logger.debug("\n\n here sending from Scada \n\n"
-                                          "control.dependant: " + control.dependant + "\n"
-                                          "PLCTags[control.dependant]: " + str(self.cache.loc[clock][control.dependant]) + "\n" )"""
-                        #self.set((f'{control.dependant}S',1), PLCTags[control.dependant])
-                        self.send((f'{control.dependant}S',1), self.cache.loc[clock][control.dependant], self.intermediate_yaml['scada']['local_ip']) #
-                        # testing 19.2 the addition of S to the name so that we can do mitm on the value that is sent to the PLCs by the scada aswell
-                self.logger.debug("-----------ControlsActions--------")
-                self.logger.debug(ControlsActions) # [('P79', None), ('P79', 'closed'), ('P1', None), ('P1', 'closed')]
-                self.logger.debug("-----------ControlsActions--------")
-
-                #Decision has been made, now we need to apply the decision by sending the action to the PLCs
-
-                for action in ControlsActions: #set the action to the PLCs , now the PLCs can receive the action and apply it
-                    #self.logger.debug(action)
-
-                    if action[1] =='closed': #The Getter and Setter are working!
-                        self.set((f'ScadaCommand_{action[0]}',1), 0)
-                    elif action[1] =='open':
-                        self.set((f'ScadaCommand_{action[0]}',1), 1)
-
-
-                    UpdatedValue=self.get((f'ScadaCommand_{action[0]}',1))
-                    #self.logger.debug(UpdatedValue)
+                    # Store the issued command in the cache and send it to the PLC
+                    UpdatedValue = self.get((f'ScadaCommand_{action[0]}', 1))
                     self.cache.loc[clock, f'ScadaCommand_{action[0]}'] = UpdatedValue
-                    self.send((f'ScadaCommand_{action[0]}',1), UpdatedValue, self.intermediate_yaml['scada']['local_ip']) # OMG it works! I can send the action to the PLCs
+                    self.send(
+                        (f'ScadaCommand_{action[0]}', 1),
+                        UpdatedValue,
+                        self.intermediate_yaml['scada']['local_ip']
+                    )
 
+                # Notify the physical process that SCADA has completed this iteration's decision logic
+                #self.logger.debug("setting sync to 25")
+                self.set_sync(25)
 
+                # Error handling: if any PLC data is missing, log and backfill with the previous iteration's values
+                self.cache.loc[clock, 'error_flag'] = False
+                for ip in self.plc_data:
+                    if self.cache.loc[clock, self.simple_plc_data[ip]].isnull().any():
+                        self.logger.debug("Missing Data From: " + str(ip))
+                        self.cache.loc[clock, 'error_flag'] = True
+                        self.cache.loc[clock, self.simple_plc_data[ip]] = self.cache.loc[
+                            clock - 1, self.simple_plc_data[ip]]
 
+                # Save current state to disk periodically
+                if 'saving_interval' in self.intermediate_yaml and clock != 0 and \
+                        clock % self.intermediate_yaml['saving_interval'] == 0:
+                    self.write_output()
 
-                self.logger.debug("setting sync to 25")
-                self.set_sync(25) # This is the flag that tells the physical process that the SCADA has made a decision and sent the action to the PLCs
-                #self.logger.debug("set sync to 25")
+                # Final sync step for this iteration
+                self.set_sync(3)
 
-            self.cache.loc[clock, 'error_flag'] = False
-            for ip in self.plc_data:
-                if self.cache.loc[clock, self.simple_plc_data[ip]].isnull().any():
-                    self.logger.debug("Missing Data From: " + str(ip))
-                    self.cache.loc[clock, 'error_flag'] = True
-                    # If any PLC values are empty, use previous value
-                    self.cache.loc[clock, self.simple_plc_data[ip]] = self.cache.loc[
-                        clock - 1, self.simple_plc_data[ip]]
-            # Save scada_values.csv when needed
-            if 'saving_interval' in self.intermediate_yaml and clock != 0 and \
-                    clock % self.intermediate_yaml['saving_interval'] == 0:
-                self.write_output()
+                # Log the full state for this iteration
+                self.logger.debug("Scada VALUES start")
+                self.logger.debug(self.cache.loc[clock])
+                self.logger.debug("Scada VALUES end")
 
-            self.set_sync(3)
-            self.logger.debug("Scada VALUES STAV")
-            self.logger.debug(self.cache.loc[clock])
-            self.logger.debug("Scada VALUES STAV")
-
-            if test_break:
-                break
+                if test_break:
+                    break
 
 
 def create_controls(controls_list):
