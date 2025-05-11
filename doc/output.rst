@@ -1,7 +1,7 @@
 =================
 Simulation Output
 =================
-All DHALSIM experiments run output data generated from the hydraulic simulation and network emulation. Additionally, it also outputs the configuration options it received, allowing 
+All WaCSim experiments run output data generated from the hydraulic simulation and network emulation. Additionally, it also outputs the configuration options it received, allowing 
 for an easy way to confirm the experimental parameters were as intended. 
 
 First, the hydraulic simulation outputs two files, :code:`ground_truth.csv`, and :code:`scada_values.csv`. Only values at nodes specified as an actuator or sensor

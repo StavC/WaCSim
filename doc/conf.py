@@ -16,9 +16,9 @@ sys.path.insert(0, os.path.abspath('../..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'dhalsim'
-copyright = '2021, Andrés F. Murillo, Robert van Dijk, Luc Jonker, Simcha Vos, Maarten Weyns'
-author = 'Andrés F. Murillo, Robert van Dijk, Luc Jonker, Simcha Vos, Maarten Weyns'
+project = 'WaCSim'
+copyright = '2025, Tyler Trimble, Stav Cohen'
+author = 'Tyler Trimble, Stav Cohen'
 
 # -- General configuration ---------------------------------------------------
 import sphinx_rtd_theme

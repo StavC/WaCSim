@@ -1,9 +1,9 @@
 ============
 Installation
 ============
-To run DHALSIM-2 a Linux machine is required. This is because Mininet, one of the dependencies of this package, utilizes Linux-specific features to create the virtual network that allows for
-the network emulation side of DHALSIM-2 to work. Furthermore, DHALSIM-2 makes use of tcpdump, a Linux-only program, to log the network traffic created during the simulation. Here, a quick guide
-on getting DHALSIM-2 running is provided for Non-Linux machines. If you are on a native Linux platform you can skip to step 4.
+To run WaCSim a Linux machine is required. This is because Mininet, one of the dependencies of this package, utilizes Linux-specific features to create the virtual network that allows for
+the network emulation side of WaCSim to work. Furthermore, WaCSim makes use of tcpdump, a Linux-only program, to log the network traffic created during the simulation. Here, a quick guide
+on getting WaCSim running is provided for Non-Linux machines. If you are on a native Linux platform you can skip to step 4.
 
 #########################################################
 Step 1: Downloading & Installing VirtualBox (Non-Windows)
@@ -18,7 +18,7 @@ has been downloaded, simply open it and go through the installation steps, keepi
 ################################
 Step 2: Downloading Ubuntu 20.04
 ################################
-DHALSIM was originally tested on Ubuntu 20.04, and thus we continue to recommend Ubuntu 20.04 for DHALSIM-2. Other versions of Linux might work, however there are no guarantees. To download the
+WaCSim was originally tested on Ubuntu 20.04, and thus we continue to recommend Ubuntu 20.04 for WaCSim. Other versions of Linux might work, however there are no guarantees. To download the
 desktop image (.ISO file) for Ubuntu 20.04, follow `this link`_ and select the "64-bit PC (AMD64) desktop image" option at the top right of the page. This will start the download for the image of
 Ubuntu 20.04, and once done, you may move on to Step 3.
 
@@ -41,21 +41,21 @@ hard drive.  Finally, the summary page hit finish and Ubuntu will be installed.
 **Important Note: If using Windows, ensure that both "Hyper-V" and "Virtual Machine Platform" are disabled otherwise the virtual machine will experience signifcant slowdowns. Once disabled, you must restart your machine first before continuing.**
 
 ###############################
-Step 4: Installing DHALSIM
+Step 4: Installing WaCSim
 ###############################
 To launch the newly installed Ubuntu virtual machine, simply double click on the main menu in VirtualBox. The default password, if you changed it, is "changeme". Once inside the virtual machine,
-click on the files icon on the sidebar to the left of the desktop. Then, navigate to and create a folder for DHALSIM (right click to create folders.) Then, right-click and select "Open in terminal" and
+click on the files icon on the sidebar to the left of the desktop. Then, navigate to and create a folder for WaCSim (right click to create folders.) Then, right-click and select "Open in terminal" and
 run the following commands inside the terminal.
 
 .. code-block::
    
-   git clone https://github.com/StavC/DHALSIM
+   git clone https://github.com/StavC/WaCSim
    
 .. code-block::
 
    ./install.sh
    
-Now, DHALSIM has been installed. On the `Getting Started`_ page, instructions on how to get started with DHALSIM are provided.
+Now, WaCSim has been installed. On the `Getting Started`_ page, instructions on how to get started with WaCSim are provided.
 
 .. _`here`: https://www.virtualbox.org/wiki/Downloads
 .. _`this link`: https://releases.ubuntu.com/focal/

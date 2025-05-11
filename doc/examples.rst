@@ -10,7 +10,7 @@ Network Graph of Anytown Showing PLCs
 ###############
 Example 1 - DoS Attack
 ###############
-Denial of service attacks have the capability of freezing a network, causing pumps to continue to pump water even when it has nowhere to go, or remain off when a tank is nearly empty. In DHALSIM-2, a DoS attack be initiated in two different ways. Either the source PLC of the tag necessary for pumps to operate can be targeted so that they are unable to send data, or PLCs with pumps can be targeted to prevent them from receiving data. Below, both of these methods are covered in the following example attacks. 
+Denial of service attacks have the capability of freezing a network, causing pumps to continue to pump water even when it has nowhere to go, or remain off when a tank is nearly empty. In WaCSim, a DoS attack be initiated in two different ways. Either the source PLC of the tag necessary for pumps to operate can be targeted so that they are unable to send data, or PLCs with pumps can be targeted to prevent them from receiving data. Below, both of these methods are covered in the following example attacks. 
 
 ``anytown_config.yaml``:
 
@@ -66,7 +66,7 @@ Because both of these attacks have the same hydraulic outcome, analyzing the att
 ###################################
 Example 2 - Concealment MitM Attack
 ###################################
-Man in the middle attacks (MitM) can be easily detectable by an operator monitoring a SCADA system if the attacker makes no attempt at concealing their activity. For example, if an attacker performs a MitM attacker on source packets coming from PLC2, then the SCADA will see the abnormal and modified values. The concealment options provided by DHALSIM-2 allow for more sophisticated attackers, who are able to hide their activity from the SCADA.
+Man in the middle attacks (MitM) can be easily detectable by an operator monitoring a SCADA system if the attacker makes no attempt at concealing their activity. For example, if an attacker performs a MitM attacker on source packets coming from PLC2, then the SCADA will see the abnormal and modified values. The concealment options provided by WaCSim allow for more sophisticated attackers, who are able to hide their activity from the SCADA.
 
 ``anytown_config.yaml``:
 

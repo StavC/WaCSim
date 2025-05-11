@@ -24,7 +24,7 @@ trigger
 
 **Takes:** a schema that determines when the attack is triggered.
 
-The **trigger** option is a container for the parameters that define how and when an attack is initiated. There are three types of triggers available in DHALSIM_2: ``time``, ``below``/``above``, and ``between``.
+The **trigger** option is a container for the parameters that define how and when an attack is initiated. There are three types of triggers available in WaCSim: ``time``, ``below``/``above``, and ``between``.
 
 time
 ~~~~
@@ -199,7 +199,7 @@ The ``simple_dos`` attack is a denial-of-service attack that prevents packets fr
 
 unconstrained_blackbox_concealment_mitm
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-This attack is specific to the CTown network. For details on its operation and purpose, refer to `the paper`_ and the original `DHALSIM documentation`_.
+This attack is specific to the CTown network. For details on its operation and purpose, refer to `the paper`_ and the original `WaCSim documentation`_.
 
 target
 ------
@@ -211,13 +211,17 @@ The targeted PLC depends on the attack type and sometimes the ``direction`` para
 
 direction
 ---------
-**Takes:** ``source`` **or** ``destination`` **(Default: ``source``)**
+**Available to:** ``naive_mitm``, ``simple_dos``.
+
+**Takes:** ``source`` **or** ``destination`` **(Default:** ``source`` **)**
 
 This parameter determines whether an attack affects outbound packets from the targeted PLC (``source``) or inbound packets to the targeted PLC (``destination``).
 
 tags
 ----
 **(Required for** ``mitm`` **,** ``server_mitm`` **,** **and** ``concealment_mitm`` **attacks)**
+
+**Available to:** ``mitm``, ``server_mitm``, ``concealment_mitm``.
 
 **Takes:** a schema defining the tags to be modified.
 
@@ -240,6 +244,8 @@ tag
 concealment_data
 ----------------
 **(Required for** ``concealment_mitm`` **attacks)**
+
+**Available to:** ``concealment_mitm``.
 
 Concealment data defines how the attack is hidden from the SCADA. It only applies to data from the targeted PLC that is sent to the SCADA, while other PLCs receive the modified data as specified by the attack parameters.
 
@@ -310,12 +316,16 @@ When set to ``network_replay``, concealment is performed by capturing all packet
 
 value
 -----
+**Available to:** ``mitm``, ``server_mitm``, ``concealment_mitm``.
+
 **Takes:** a float number representing the attack value.
 
 This parameter is used in all MitM attacks (except ``naive_mitm`` and ``replay_mitm``) and for concealment data when using the ``value`` method. It forces the tag value to equal the specified number.
 
 offset
 ------
+**Available to:** ``mitm``, ``server_mitm``, ``concealment_mitm``.
+
 **Takes:** a float number representing the attack value.
 
 Used similarly to ``value``, the ``offset`` parameter is applied in MitM attacks (except ``naive_mitm`` and ``replay_mitm``) and for concealment data when using the ``value`` method. The tag value is modified as follows:
@@ -325,7 +335,9 @@ The offset may be positive or negative.
 
 capture_start
 -------------
-**(Required for** ``replay_mitm`` **attacks)**
+**(Required for** ``replay_mitm``, **attacks)**
+
+**Available to:** ``replay``, ``concealment_mitm``.
 
 **Takes:** an integer representing the iteration at which to begin capturing packets or payloads.
 
@@ -335,6 +347,8 @@ capture_end
 -----------
 **(Required for** ``replay_mitm`` **attacks)**
 
+**Available to:** ``replay``, ``concealment_mitm``.
+
 **Takes:** an integer representing the iteration at which to stop capturing packets or payloads.
 
 Data from the iteration specified by ``end_capture`` is included in the capture; only data from subsequent iterations is excluded.
@@ -343,9 +357,11 @@ replay_start
 ------------
 **(Required for** ``replay_mitm`` **attacks)**
 
+**Available to:** ``replay``, ``concealment_mitm``.
+
 **Takes:** an integer representing the iteration at which to start replaying captured packets or payloads.
 
 Captured data is replayed iteratively starting from this iteration until all captured data is sent. The replay duration matches the capture duration.
 
 .. _`from the paper`: https://dl.acm.org/doi/10.1145/3564625.3564633
-.. _`DHALSIM documentation`: https://github.com/StavC/DHALSIM/blob/master/doc/attacks.rst#unconstrained-blackbox-concealment-mitm-attack
+.. _`WaCSim documentation`: https://github.com/StavC/WaCSim/blob/master/doc/attacks.rst#unconstrained-blackbox-concealment-mitm-attack

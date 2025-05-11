@@ -44,7 +44,7 @@ inp_file
 **Takes file path to .INP file.**
 
 The .INP file is the file that contains all information about the water distribution system (WDS) and the hydraulic simulation parameters for use with the `EPANET`_ hydraulic simulation engine. Besides
-defining the components of the WDS (junctions, pipes, pumps, etc.) other information of importance for DHALSIM-2 included in this file are demand patterns, control rules, and the duration/hydraulic timestep
+defining the components of the WDS (junctions, pipes, pumps, etc.) other information of importance for WaCSim included in this file are demand patterns, control rules, and the duration/hydraulic timestep
 of the simulation. These files can also be opened to be edited in EPANET, or in a text editor of your choice.
 
 plcs
@@ -75,11 +75,11 @@ output_path
 **Takes file path to desired output destination.** **(default:** ``output`` **)**
 
 The output path is the folder where all the results from the simulation would be saved. This path must be a relative path from where
-the config file is (E.g. ``/DHALSIM_results``) and not an absolute path (E.g. ``/home/user/Documents/DHALSIM_results``).
+the config file is (E.g. ``/WaCSim_results``) and not an absolute path (E.g. ``/home/user/Documents/WaCSim_results``).
 
 iterations
 ----------
-**Takes integer representing number of iterations to run DHALSIM-2 experiment for.** **(default: # of hydraulic timesteps)**
+**Takes integer representing number of iterations to run WaCSim experiment for.** **(default: # of hydraulic timesteps)**
 
 The number of iterations, by default is the number of hydraulic timesteps which is ``duration/hydraulic_time_step``. These values can be found in the .INP file for the network, or by opening
 the .INP file in EPANET. Setting the iteration value to a number other than the default will modify the duration of the simulation, but not the hydraulic time step. For example, if by default the
@@ -107,7 +107,7 @@ The log level determines what information is shown in the terminal while the sim
 ``error``: This log level only displays error-level log events and above. Errors may indicate that something has gone wrong with the simulation and are cause for investigation. However, they are not
 always a problem.
 
-``critical``: This log level will only display critical-level log events. Critical errors will always cause the simulation to shut down. DHALSIM shutdowns are typically caused by typos or errors in the configuration
+``critical``: This log level will only display critical-level log events. Critical errors will always cause the simulation to shut down. WaCSim shutdowns are typically caused by typos or errors in the configuration
 files and are the first place to check to solve them.
 
 batch_simulations
@@ -137,7 +137,7 @@ Demand driven analysis (represented by ``DD``) will always ensure that demands a
 the default in EPANET.
 
 In contrast, pressure driven demand (represented by ``PDD``) allows for the demand at each junction to fluctuate with the pressure in the system. This generally prevents negative pressures
-from occurring in the system but may lead to scenarios where the demand at each node is not met. For DHALSIM-2, PDD is recommended due to the frequency of scenarios in which the system does
+from occurring in the system but may lead to scenarios where the demand at each node is not met. For WaCSim, PDD is recommended due to the frequency of scenarios in which the system does
 not behave correctly (due to an attacker) and using demand driven analysis has a higher chance of unrealistic system states.
 
 simulator
@@ -150,12 +150,15 @@ is only a small part of its capabilities. On the other hand, `epynet`_ is an EPA
 When performing device attacks, the only way to modify a pump's speed is to use the `epynet` option. Additionally, epynet is potentially faster. However, because the hydraulic simulation is so
 fast compared to the network emulation with mininet, the difference is negligible.
 
-noise_scale
------------
-**Takes float representing noise scale.** **(default:** ``0`` **)**
+noise_scale_data
+-----------------
+**Takes file path to network_delay_data .CSV file.**
 
-Setting `noise_scale` to a non-zero value will result in Gaussian noise being added to the sensor values that PLCs receive and send. The exact function used is from `NumPy`_, ``np.random.normal``.
-Under the hood, ``noise_scale`` determines the standard deviation of the normal distribution, equal to ``noise_scale*sensor_value`` resulting in a random sample that is added to the unmodified sensor value.
+The noise scale is the amount of variability in sensor measurments. This can be useful for modeling more realistic scenarios, or for modeling scenarios where a sensor is malfunctioning.
+
+`noise_scale` should be a .CSV file, where the column headers are `scada` and/or names of PLCs. The number of non-header rows, where noise scale values are entered, should be equal to `batch_simulations` (or a single row when not doing batch simulations), with the row number corresponding to the simulation number.
+
+Setting `noise_scale_data` to a non-zero value will result in Gaussian noise being added to the sensor values that PLCs receive and send. The exact function used is from `NumPy`_, ``np.random.normal``. Under the hood, ``noise_scale`` determines the standard deviation of the normal distribution, equal to ``noise_scale*sensor_value`` resulting in a random sample that is added to the unmodified sensor value.
 
 network_loss_data
 -----------------
@@ -163,7 +166,7 @@ network_loss_data
 
 Network losses are when packets are sent but not received. Packets can be lost for a variety of reasons and can be used to represent non-ideal conditions in the simulation.
 
-`network_loss_data` should be a .CSV file, where the column headers are `scada` and/or names of PLCs. The number of non-header rows should be equal to `batch_simulations` (or a single row when not doing batch simulations), with the row number corresponding to the simulation number.
+`network_loss_data` should be a .CSV file, where the column headers are `scada` and/or names of PLCs. The number of non-header rows, where network loss values are entered, should be equal to `batch_simulations` (or a single row when not doing batch simulations), with the row number corresponding to the simulation number.
 
 Each value represents the probability (from ``0-100%``) that a given packet is lost. This is accomplished by mininet through Linux's netem module, and the documentation for this functionality is `here`_ if interested.
 
@@ -173,15 +176,25 @@ network_delay_data
 
 Network delays are when packets are delayed by some constant time, typically expressed in milliseconds. All networks have some delay, a result of needing to transmit packets across a physical distance.
 
-`network_delay_data` should be a .CSV file, where the column headers are `scada` and/or names of PLCs. The number of non-header rows should be equal to `batch_simulations` (or a single row when not doing batch simulations), with the row number corresponding to the simulation number.
+`network_delay_data` should be a .CSV file, where the column headers are `scada` and/or names of PLCs. The number of non-header rows, where network delay values are entered, should be equal to `batch_simulations` (or a single row when not doing batch simulations), with the row number corresponding to the simulation number.
 
 Each value represents the delay in milliseconds for each packet. This is accomplished by mininet through Linux's netem module, and the documentation for this functionality is `here`_ if interested.
+
+network_jitter_data
+------------------
+**Takes file path to network_jitter_data .CSV file.**
+
+Network jitter is an additional delay that is randomly selected from a normal distribution. All networks have some delay, a result of needing to transmit packets across a physical distance.
+
+`network_jitter_data` should be a .CSV file, where the column headers are `scada` and/or names of PLCs. The number of non-header rows, where network jitter values are entered, should be equal to `batch_simulations` (or a single row when not doing batch simulations), with the row number corresponding to the simulation number.
+
+Each value represents the jitter in milliseconds for each packet. Providing a value of 20ms, for instance, will add an additional packet delay selected from a normal distribution with a standard deviation of 20ms. This is accomplished by mininet through Linux's netem module, and the documentation for this functionality is `here`_ if interested.
 
 initial_tank_data
 -----------------
 **Takes file path to initial_tank_data .CSV file.**
 
-`network_delay_data` should be a .CSV file, where the column headers are the names of tanks. The number of non-header rows should be equal to `batch_simulations` (or a single row when not doing batch simulations), with the row number corresponding to the simulation number.
+`network_delay_data` should be a .CSV file, where the column headers are the names of tanks. The number of non-header rows, where initial tank values are entered, should be equal to `batch_simulations` (or a single row when not doing batch simulations), with the row number corresponding to the simulation number.
 
 Each value represents the tank level in meters.
 
@@ -189,9 +202,7 @@ demand_patterns
 ---------------
 **Takes file path to demand_patterns .CSV file or folder path if doing batch simulations.**
 
-Each demand pattern .CSV should have the column headers set to the demand pattern names, and each non-header row set to the multipliers for each demand pattern. The name of the .CSV must be the number of the
-simulation is for when running in batch simulation mode (``0.csv``, ``1.csv``, etc.). Additionally, when running batch simulations, the input to ``demand_patterns`` should be the folder where
-the .CSV files are located (E.g. ``demand_patterns: patterns/``).
+Each demand pattern .CSV should have the column headers set to the demand pattern names, and each non-header row set to the multipliers for each demand pattern. The name of the .CSV must be the simulation number when running in batch simulation mode (``0.csv``, ``1.csv``, etc.). Additionally, when running batch simulations, the input to ``demand_patterns`` should be the folder where the .CSV files are located (E.g. ``demand_patterns: patterns/``).
 
 attacks
 -------
@@ -288,93 +299,6 @@ actuators
 **Takes**: list of pumps and/or valves.
 
 The sensors listed here define which actuators are controlled PLC, and what actuator data other PLCs can request from it. There are no constraints or limitations on what actuators can be added to a PLC, however generally PLCs should contain actuators within a certain physical region of the network.
-
-Per-PLC/Per-SCADA Config Options
-===================
-The Per-PLC and Per-SCADA config files are used to specify the decision maker for each PLC and the SCADA system. The decision maker is the process that controls the state of actuators (i.e. ``open`` or ``closed``.) Additionally, these files only come into effect when ``mode`` is set to ``hybridcontrol``. This determination is made in two stages. First, the SCADA uses the configuration of the Per-SCADA config file to determine what command it should send, and then the PLC uses it's own Per-PLC configuration file to make the final decision.
-
-For instance, if an actuator is set to ``rule`` in the Per-SCADA file, but ``scada`` in the Per-PLC file, then the simulation will behave in the same way as if ``mod`` was set to ``plccontrol``. Another example that will break the simulation is doing the inverse, setting all PER-PLC actuators to ``rule`` and all Per-SCADA actuators to ``scada``.
-
-.. code-block:: yaml
-
-   - name: PLC1
-     actuators:
-       - name: P79
-         decision_maker: scada
-   - name: PLC4
-     actuators:
-       - name: P1
-         decision_maker: examples/MiniAnyTown/PLC_Algo/PLC4_P1_Algo.py
-		 
-name
-----
-**(Required Option)**
-
-**Takes:** string of any length/characters excluding ``(space)`` and ``-`` characters.
-
-This ``name`` option is the name of the PLC that is being configured.
-
-actuators
----------
-**(Required Option)**
-
-name
-^^^^
-**(Required Option)**
-
-**Takes:** string of any length/characters excluding ``(space)`` and ``-`` characters.
-
-This name is the name of the actuator that is being configured.
-	
-decision_maker
-^^^^^^^^^^^^^^
-**(Required Option)**
-	
-**Takes:** ``rule``, ``scada``, or a file path to custom algorithm .py file. 
-
-rule
-""""
-Setting ``decision_maker`` to ``rule`` will cause the all actuator controls to be determined by the control rules that are defined in the .INP file using values from the PLC. This essentially means that actuators using this decision maker will act is if ``mode`` is ``plccontrol``.
-
-scada
-"""""
-Setting ``decision_maker`` to ``scada`` will cause the all actuator controls to be by the control rules that are defined in the .INP file using values from the SCADA. This essentially means that actuators using this decision maker will act is if ``mode`` is ``scadacontrol``.
-
-path
-""""
-If a path is used a ``decision_maker``, then that means a custom algorithm will determine the decision maker or the decision itself. Custom algorithms are powerful and can take advantage of data being generated in real time. Custom algorithms can return four values: ``rule``, ``scada``, ``open``, or ``closed``. If the returned value is ``rule`` or ``scada`` then the behavior of the actuator will be the same as how ``rule`` and ``scada`` was defined previously. If the returned value is ``open`` or ``closed`` then that action will be applied regardless of the command determined from either the SCADA or PLC. 
-
-The custom algorithms format take different inputs depending on if the script is intended for Per-PLC or Per-SCADA config files. 
-
-**For Per-PLC Config File:**
-
-.. code-block:: python
-
-   def AlgoRun(ScadaDict, PLCDict):
-       #print('Entering AlgoRun HERE' *10)
-       #print(f'Scada Dict={ScadaDict}')
-       #print(f'PLC Dict= {PLCDict}')
-       if ScadaDict['T41'] > PLCDict['T41'] + 1:
-           return 'scada'
-       else:
-           return 'plc'
-
-Here, ``ScadaDict`` includes information sent from the SCADA to the PLC. On the other hand, ``PLCDict`` includes the actuator commands determined by the PLC and the values of the local and dependant sensors.
-
-**For Per-SCADA Config File:**
-
-.. code-block:: python
-
-   def AlgoRun(cacheDict):
-       #print('Entering SCADA AlgoRun HERE' *10)
-       if cacheDict['T42'] > 4.0:
-           return 'closed'
-       else:
-           return 'open'
-		
-Here, the only variable that is passed to the algorithm is ``cacheDict``, which contains all the tag values that SCADA has recieved from PLCs. 
-
-These custom algorithms are able to access simulation data in real-time beyond what is immediately passed into the function by DHALSIM-2. With ``saving_interval`` hydraulics data for SCADA, PLCs, and the ground truth can be accessed in real-time. Additionally, .PCAP files are also written in real-time, and can be accessed and read in Python with the correct packages.
 
 .. _`EPANET`: https://www.epa.gov/water-research/epanet
 .. _`WNTR`: https://github.com/USEPA/WNTR
