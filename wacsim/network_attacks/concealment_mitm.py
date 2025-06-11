@@ -58,7 +58,7 @@ class ConcealmentMiTMAttack(SyncedAttack):
         self.logger.debug(f"Concealment MITM Attack ARP Poison between {self.target_plc_ip} and "
                           f"{self.intermediate_attack['gateway_ip']}")
 
-        queue_number = 1
+        queue_number = self.intermediate_attack['queue_num']
         nfqueue_path = Path(__file__).parent.absolute() / "concealment_netfilter_queue.py"
         cmd = ["python3", str(nfqueue_path), str(self.intermediate_yaml_path), str(self.yaml_index), str(queue_number)]
 
@@ -104,19 +104,18 @@ class ConcealmentMiTMAttack(SyncedAttack):
         pass
 
 
-    @staticmethod
-    def modify_ip_tables(append=True):
-
+    def modify_ip_tables(self, append=True):
+        queue_num = self.intermediate_attack['queue_num']
         if append:
-            os.system(f'iptables -t mangle -A PREROUTING -p tcp -j NFQUEUE --queue-num 1')
+            os.system(f'iptables -t mangle -A PREROUTING -p tcp -j NFQUEUE --queue-num {queue_num}')
 
             os.system('iptables -A FORWARD -p icmp -j DROP')
             os.system('iptables -A INPUT -p icmp -j DROP')
             os.system('iptables -A OUTPUT -p icmp -j DROP')
         else:
 
-            os.system(f'iptables -t mangle -D INPUT -p tcp -j NFQUEUE --queue-num 1')
-            os.system(f'iptables -t mangle -D FORWARD -p tcp -j NFQUEUE --queue-num 1')
+            os.system(f'iptables -t mangle -D INPUT -p tcp -j NFQUEUE --queue-num {queue_num}')
+            os.system(f'iptables -t mangle -D FORWARD -p tcp -j NFQUEUE --queue-num {queue_num}')
 
             os.system('iptables -D FORWARD -p icmp -j DROP')
             os.system('iptables -D INPUT -p icmp -j DROP')

@@ -1,14 +1,14 @@
-from wacsim.network_attacks.mitm_netfilter_queue_subprocess import PacketQueue
+from dhalsim.network_attacks.mitm_netfilter_queue_subprocess import PacketQueue
 import argparse
 from pathlib import Path
 import os
 import sys
 import csv
-
+import importlib.util
 from scapy.layers.inet import IP, TCP
 from scapy.packet import Raw
 
-from wacsim.network_attacks.utilities import translate_payload_to_float, translate_float_to_payload
+from dhalsim.network_attacks.utilities import translate_payload_to_float, translate_float_to_payload
 
 def extract_tag_name(payload):
     """
@@ -41,7 +41,7 @@ class MiTMNetfilterQueue(PacketQueue):
         self.attacked_tags = self.intermediate_attack['tags']
         self.session_ids = []
         self.session_tags = dict()
-
+        self.attacker_cache = dict()
         # Load CSV files
         self.csv_data = {}  # (tag, key) -> [float values]
         self.csv_index = {}  # (tag, key) -> int index
@@ -85,7 +85,7 @@ class MiTMNetfilterQueue(PacketQueue):
                 # 🔹 Dynamically extract tag name
 
                 tag_name = extract_tag_name(payload)
-
+                self.attacker_cache[tag_name] = translate_payload_to_float(payload)
                 # Track session ID
                 if len(p) > 105 and tag_name:
                     for tag in self.attacked_tags:
@@ -119,7 +119,16 @@ class MiTMNetfilterQueue(PacketQueue):
                                 offset = self.get_next_csv_value(tag_name, 'offset')
                             modified_value = base_value + offset
                             p[Raw].load = translate_float_to_payload(modified_value, payload)
-
+                        elif 'custom' in self.current_attacked_tag:
+                            path_to_algo = self.current_attacked_tag['custom']
+                            ScriptName = path_to_algo.split('/')[-1]
+                            spec = importlib.util.spec_from_file_location(ScriptName, path_to_algo)
+                            module = importlib.util.module_from_spec(spec)
+                            sys.modules[ScriptName] = module
+                            spec.loader.exec_module(module)
+                            AlgoRun = getattr(module, 'AlgoRun')
+                            modified_value = AlgoRun(self.attacker_cache, tag_name) # Result is the sensor value
+                            p[Raw].load = translate_float_to_payload(modified_value, payload)
                         # Recalculate checksums
                         del p[IP].chksum
                         del p[TCP].chksum

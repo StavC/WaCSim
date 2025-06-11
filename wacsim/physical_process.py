@@ -10,18 +10,17 @@ import progressbar
 import sqlite3
 import sys
 import time
+import math
 from pathlib import Path
 
 from wacsim.parser.file_generator import BatchReadmeGenerator, GeneralReadmeGenerator
 from wacsim.py3_logger import get_logger
 import yaml
 
+from epanet import toolkit as en
 import wntr
 import wntr.network.controls as controls
 from decimal import Decimal
-
-from epynet.water_network import WaterDistributionNetwork
-from epynet import epynetUtils
 
 
 class Error(Exception):
@@ -76,17 +75,8 @@ class PhysicalPlant:
         # connection to the database
         self.db_path = self.data["db_path"]
 
-        # get simulator: WNTR or epynet. This will impact how the controls, actuator status, and results are handled
-        self.simulator = self.data["simulator"]
-
-        if self.simulator == 'epynet':
-            self.prepare_epynet_simulator()
-        elif self.simulator == 'wntr':
-            self.prepare_wntr_simulator()
-        else:
-            self.logger.warning("Warning! Unsupported simulator configured, defaulting to epynet")
-            self.simulator = 'epynet'
-            self.prepare_epynet_simulator()
+        # get simulator: WNTR
+        self.prepare_simulator()
 
         self.scada_junction_list = self.get_scada_junction_list(self.data['plcs'])
         self.values_list = list()
@@ -106,19 +96,14 @@ class PhysicalPlant:
         self.set_initial_values()
 
         self.logger.info("Starting simulation for " +
-                         os.path.basename(str(self.data['inp_file']))[:-4] + " topology." + "Simulator is: " +
-                         str(self.simulator))
+                         os.path.basename(str(self.data['inp_file']))[:-4] + " topology.")
 
         self.start_time = datetime.now()
-
+        self.deficit_df_initialized = False
         # Build initial list of actuators
-        if self.simulator == 'epynet':
-            self.build_initial_actuator_dict()
-            self.master_time = 0
-        elif self.simulator == 'wntr':
-            self.sim = wntr.sim.WNTRSimulator(self.wn)
-            self.master_time = -1
-
+        self.sim = wntr.sim.WNTRSimulator(self.wn)
+        self.master_time = 0
+        self.connected_links_found = False
         self.db_update_string = "UPDATE plant SET value = ? WHERE name = ?"
 
         self.db_sleep_time = random.uniform(0.01, 0.1)
@@ -173,8 +158,56 @@ class PhysicalPlant:
 
         self.logger.error("Failed to connect to db. Tried {i} times.".format(i=self.DB_TRIES))
         raise DatabaseError("Failed to execute db query in database")
-
-    def prepare_wntr_simulator(self):
+    
+    
+    def calc_water_loss(self):
+        if not self.connected_links_found:
+            self.connected_link_dict = {}
+            self.reverse_dict = {}
+            self.prev_tank_level_dict = {}
+            self.water_loss_df = pd.DataFrame(0, index=range(self.data["iterations"]+1), columns=self.tank_list)
+            for link in self.link_list:
+                link = self.wn.get_link(link)
+                if link.start_node_name in self.tank_list:
+                    self.connected_link_dict[link.start_node_name] = link.name
+                    self.reverse_dict[link.start_node_name] = False
+                elif link.end_node_name in self.tank_list:
+                    self.connected_link_dict[link.end_node_name] = link.name
+                    self.reverse_dict[link.end_node_name] = True  
+                                         
+            for tank in self.tank_list:
+                self.prev_tank_level_dict[tank] = self.wn.get_node(tank).init_level
+            self.logger.debug("Done with setup")
+            self.connected_links_found = True
+        for tank in self.tank_list:
+            tank = self.wn.get_node(tank)
+            link = self.wn.get_link(self.connected_link_dict[tank.name])
+            idx = en.getlinkindex(ph=self.proj, id=link.name)
+            flow = en.getlinkvalue(ph=self.proj, index=idx, property=en.FLOW)/3600
+            if self.reverse_dict[tank.name]:
+                V_proj = tank.get_volume(self.prev_tank_level_dict[tank.name]) + flow*self.simulation_step
+            else:
+                V_proj = tank.get_volume(self.prev_tank_level_dict[tank.name]) - flow*self.simulation_step
+                
+            if V_proj > tank.get_volume(tank.max_level) and tank.overflow:
+                self.water_loss_df.loc[self.master_time, tank.name] = V_proj - tank.get_volume(tank.max_level)
+                self.logger.warning("Water loss at " + tank.name + ": " + str(self.water_loss[self.master_time, tank.name]) + " m^3")
+            else:
+                self.water_loss_df.loc[self.master_time, tank.name] = 0
+            idx = en.getnodeindex(ph=self.proj, id=tank.name)
+            self.prev_tank_level_dict[tank.name] = en.getnodevalue(ph=self.proj, index=idx, property=en.PRESSURE)
+        return
+            
+    def calc_demand_deficit(self):
+        if not self.deficit_df_initialized:
+            self.demand_deficit_df = pd.DataFrame(0, index=range(self.data["iterations"]+1), columns=self.junction_list)
+            self.deficit_df_initialized = True
+        for junction in self.junction_list:
+            idx = en.getnodeindex(ph=self.proj, id=junction)
+            self.demand_deficit_df.loc[self.master_time, junction] = en.getnodevalue(ph=self.proj, index=idx, property=en.DEMANDDEFICIT)
+                    
+        
+    def prepare_simulator(self):
         self.logger.info("Preparing wntr simulation")
         self.wn = wntr.network.WaterNetworkModel(self.data['inp_file'])
 
@@ -207,35 +240,6 @@ class PhysicalPlant:
             self.wn.options.hydraulic.demand_model = 'PDD'
 
         self.simulation_step = self.wn.options.time.hydraulic_timestep
-
-    def prepare_epynet_simulator(self):
-
-        self.logger.info("Preparing epynet simulation")
-
-        original_inp_filename = self.data['inp_file'].rsplit('.', 1)[0]
-        processed_inp_filename = original_inp_filename + '_processed.inp'
-        try:
-            self.remove_controls_from_inp_file(self.data['inp_file'], processed_inp_filename)
-        except IOError as ioe:
-            self.logger.error('IO Exception writing an EPANET file without [CONTROLS], aborting')
-            sys.exit(1)
-
-        # using an epynet water network object we do not have a way of removing the controls, so we write a new
-        # EPANET inp file without the [CONTROLS] section
-        self.wn = WaterDistributionNetwork(processed_inp_filename)
-
-        # epynet
-        self.simulation_step = epynetUtils.get_time_parameter(
-            self.wn, epynetUtils.get_time_param_code('EN_HYDSTEP'))[1]
-
-        # epynet
-        self.tank_list = list(self.wn.tanks.keys())
-        self.junction_list = list(self.wn.junctions.keys())
-        self.pump_list = list(self.wn.pumps.keys())
-        self.valve_list = list(self.wn.valves.keys())
-
-        # epynet
-        self.actuator_list = None
 
     def create_control_dict(self, actuator, dummy_condition):
         act_dict = dict.fromkeys(['actuator', 'parameter', 'value', 'condition', 'name'])
@@ -324,66 +328,20 @@ class PhysicalPlant:
                 result.append(network_attack['name'])
 
         return result
-
-    def build_initial_actuator_dict(self):
-        actuator_status = []
-        actuator_names = self.pump_list
-        actuator_names.extend(self.valve_list)
-
-        for actuator in actuator_names:
-            if actuator in self.wn.pumps:
-                actuator_status.append(self.wn.pumps[actuator].status)
-            elif actuator in self.wn.valves:
-                actuator_status.append(self.wn.valves[actuator].status)
-            else:
-                self.logger.error('Invalid actuator!')
-
-        self.actuator_list = dict(zip(actuator_names, actuator_status))
         
     def register_initial_results(self):
         self.values_list = [self.master_time, datetime.now()]
-
-        # register initial state of the tanks
-        if self.simulator == 'epynet':
-            # Get tanks levels
-            for tank in self.tank_list:
-                self.values_list.extend([self.wn.tanks[tank].tanklevel])
-        elif self.simulator == 'wntr':
-            for tank in self.tank_list:
-                self.values_list.extend([self.wn.get_node(tank).level])
-
-        if self.simulator == 'epynet':
-            # Get junction  levels
-            for junction in self.junction_list:
-                self.values_list.extend(
-                    [self.wn.junctions[junction].pressure])
-        elif self.simulator == 'wntr':
-            for junction in self.junction_list:
-                # toDo: Check in wntr 0.4.2 a new way of getting the initial junction pressure
-                self.values_list.extend([0])
-
-        if self.simulator == 'epynet':
-            # Get pumps flows and status
-            self.logger.debug('Registering initial results of pumps: ' + str(self.pump_list))
-            for pump in self.pump_list:
-                if pump in self.wn.pumps:
-                    self.values_list.extend([self.wn.pumps[pump].flow, self.wn.pumps[pump].status])
-                elif pump in self.wn.valves:
-                    self.values_list.extend([self.wn.valves[pump].flow, self.wn.valves[pump].status])
-                else:
-                    self.logger.error("Error. Actuator " + str(pump)  + " not found in EPANET file")
-        elif self.simulator == 'wntr':
-
-            for pump in self.pump_list:
-                self.values_list.extend([self.wn.get_link(pump).flow])
-                if type(self.wn.get_link(pump).status) is int:
-                    self.values_list.extend([self.wn.get_link(pump).status])
-                else:
-                    self.values_list.extend([self.wn.get_link(pump).status.value])
-
-        # epynet current's version includes valves status in pumps
-        if self.simulator != 'epynet':
-            self.extend_valves()
+        for tank in self.tank_list:
+            idx = en.getnodeindex(ph=self.proj, id=tank)
+            self.values_list.extend([en.getnodevalue(ph=self.proj, index=idx, property=en.PRESSURE)])
+        for junction in self.junction_list:
+            idx = en.getnodeindex(ph=self.proj, id=junction)
+            self.values_list.extend([en.getnodevalue(ph=self.proj, index=idx, property=en.PRESSURE)])
+        for pump in self.pump_list:
+            self.values_list.extend([self.wn.get_link(pump).flow])
+            idx = en.getlinkindex(ph=self.proj, id=pump)
+            self.values_list.extend([en.getlinkvalue(ph=self.proj, index=idx, property=en.FLOW)])
+            self.values_list.extend([en.getlinkvalue(ph=self.proj, index=idx, property=en.STATUS)])
 
         self.extend_attacks()
 
@@ -396,71 +354,41 @@ class PhysicalPlant:
         self.extend_pumps(results)
 
         # epynet current's version includes valves status in pumps
-        if self.simulator != 'epynet':
-            self.extend_valves()
-
+        self.extend_valves(results)
         self.extend_attacks()
 
     def extend_tanks(self, results=None):
-
-        if self.simulator == 'epynet':
-            # Get tanks levels
-            for tank in self.tank_list:
-                self.values_list.extend([results[tank]['pressure']])
-        elif self.simulator == 'wntr':
-            for tank in self.tank_list:
-                self.values_list.extend([self.wn.get_node(tank).level])
+        for tank in self.tank_list:
+            self.values_list.extend([results[tank]['pressure']])
 
     def extend_junctions(self, results=None):
         negative_pressure = 0
-        if self.simulator == 'epynet':
-            # Get junction  levels
-            for junction in self.junction_list:
-                self.values_list.extend(
-                    [self.wn.junctions[junction].pressure.iloc[-1]])
-        elif self.simulator == 'wntr':
-            for junction in self.junction_list:
-                pressure = self.wn.get_node(junction).pressure
-                if pressure < 0:
-                    negative_pressure = 1
-                self.values_list.extend([pressure])
+        for junction in self.junction_list:
+            pressure = results[junction]['pressure']
+            if pressure < 0:
+                negative_pressure = 1
+            self.values_list.extend([results[junction]['pressure']])
         if negative_pressure:
             self.logger.warning("At iteration {x}, system has negative pressures - \
                                  negative pressures occurred at one or more junctions with positive demand".format(x=self.master_time))
+                                 
     def extend_pumps(self, results=None):
-
-        if self.simulator == 'epynet':
-            # Get pumps flows and status
-            for pump in self.pump_list:
-                self.values_list.extend([results[pump]['flow'], results[pump]['status']])
-
-        elif self.simulator == 'wntr':
-
-            for pump in self.pump_list:
-                try:
-                    curve_coeff = self.wn.get_link("P9").get_head_curve_coefficients()
-                    max_flow = (curve_coeff[0]/curve_coeff[1])**(1/curve_coeff[2])
-                    if self.wn.get_link(pump).flow > max_flow:
-                        self.logger.warning("At iteration {x}, pumps cannot deliver enough flow or head - one or more pumps were forced to \
+        for pump in self.pump_list:
+            try:
+                curve_coeff = self.wn.get_link("P9").get_head_curve_coefficients()
+                max_flow = (curve_coeff[0]/curve_coeff[1])**(1/curve_coeff[2])
+                if self.wn.get_link(pump).flow > max_flow:
+                    self.logger.warning("At iteration {x}, pumps cannot deliver enough flow or head - one or more pumps were forced to \
                                             either shut down (due to insufficient head) or operate beyond the maximum rated flow".format(x=self.master_time))
-                except Exception:
-                    pass
-                self.values_list.extend([self.wn.get_link(pump).flow])
-                if type(self.wn.get_link(pump).status) is int:
-                    self.values_list.extend([self.wn.get_link(pump).status])
-                else:
-                    self.values_list.extend([self.wn.get_link(pump).status.value])
-
-    def extend_valves(self):
+            except Exception:
+                pass
+            self.values_list.extend([results[pump]['flow'], results[pump]['status']])
+            
+    def extend_valves(self, results=None):
         # Get valves flows and status
         for valve in self.valve_list:
-            self.values_list.extend([self.wn.get_link(valve).flow])
-
-            if type(self.wn.get_link(valve).status) is int:
-                self.values_list.extend([self.wn.get_link(valve).status])
-            else:
-                self.values_list.extend([self.wn.get_link(valve).status.value])
-
+            self.values_list.extend([results[valve]['flow'], results[valve]['status']])
+            
     def extend_attacks(self):
         # Get device attacks
         if "plcs" in self.data:
@@ -483,14 +411,12 @@ class PhysicalPlant:
             conn.commit()
             new_status = int(rows_1[0])
 
-            control['value'] = new_status
-
-            new_action = controls.ControlAction(control['actuator'], control['parameter'],
-                                                control['value'])
-            new_control = controls.Control(control['condition'], new_action, name=control['name'])
-
-            self.wn.remove_control(control['name'])
-            self.wn.add_control(control['name'], new_control)
+            control['value'] = float(new_status)
+            idx = en.getlinkindex(ph=self.proj, id=control['name'])
+            if not math.isclose(control['value'], 1) and not math.isclose(control['value'], 0):
+                en.setlinkvalue(ph=self.proj, index=idx, property=en.SETTING, value=control['value'])
+            else:
+                en.setlinkvalue(ph=self.proj, index=idx, property=en.STATUS, value=control['value'])
 
     def _init_what(self):
         """Save a ordered tuple of pk field names in self._what."""
@@ -577,70 +503,7 @@ class PhysicalPlant:
         """
         return self.db_query("SELECT flag FROM attack WHERE name IS ?", False, (name,))
 
-    def get_actuator_status(self, actuator):
-        if isinstance(self.get_from_db(actuator), int):
-            # Actuator is either OPEN/CLOSED
-            return int(self.get_from_db(actuator))
-        else:
-            # Pump speed setting
-            #self.logger.debug('Pump setting value found: ' + str(float(self.get_from_db(actuator))))
-            return float(self.get_from_db(actuator))
-
-    def update_actuators(self):
-        for actuator in self.actuator_list:
-            self.actuator_list[actuator] = self.get_actuator_status(actuator)
-
-    def convert_to_tuple(self, what):
-        return what, 1
-
-    def set_to_db(self, what, value):
-        """Returns setted value.
-        ``value``'s type is not checked, the client has to specify the correct
-        one.
-        what_list overwrites the given what tuple,
-        eg new what tuple: ``(value, what[0], what[1], ...)``
-        """
-        what_list = [value]
-
-        what_tuple = self.convert_to_tuple(what)
-        for pk in what_tuple:
-            what_list.append(pk)
-        what = tuple(what_list)
-
-        for i in range(self.DB_TRIES):
-            with sqlite3.connect(self._path) as conn:
-                try:
-                    cursor = conn.cursor()
-                    cursor.execute(self._set_query, what)
-                    conn.commit()
-                    return value
-
-                except sqlite3.OperationalError as e:
-                    self.logger.info('Failed writing to DB')
-                    time.sleep(self.db_sleep_time)
-        self.logger.error(
-            "Failed to connect to db. Tried {i} times.".format(i=self.DB_TRIES))
-        raise DatabaseError("Failed to set value to database")
-
-    def get_from_db(self, what):
-        """Returns the first element of the result tuple."""
-        what_tuple = self.convert_to_tuple(what)
-
-        for i in range(self.DB_TRIES):
-            with sqlite3.connect(self.db_path) as conn:
-                try:
-                    cursor = conn.cursor()
-                    cursor.execute(self._get_query, what_tuple)
-                    record = cursor.fetchone()
-                    return record[0]
-
-                except sqlite3.OperationalError as e:
-                    self.logger.info('Failed reading to DB')
-                    time.sleep(self.db_sleep_time)
-        self.logger.error(
-            "Failed to connect to db. Tried {i} times.".format(i=self.DB_TRIES))
-        raise DatabaseError("Failed to get master clock from database")
-
+  
     def main(self):
         """Runs the simulation for x iterations."""
 
@@ -662,232 +525,125 @@ class PhysicalPlant:
                        progressbar.Bar(), ' [', progressbar.ETA(), '] ', ]
             p_bar = progressbar.ProgressBar(max_value=iteration_limit, widgets=widgets)
             p_bar.start()
-
-        if self.simulator == 'epynet':
-            self.simulate_with_epynet(iteration_limit, p_bar)
-        elif self.simulator == 'wntr':
-            self.simulate_with_wntr(iteration_limit, p_bar)
+        self.simulate_with_wntr(iteration_limit, p_bar)
         self.finish()
-
-    def simulate_with_epynet(self, iteration_limit, p_bar):
-        self.logger.info("Starting epynet simulation")
-        simulation_duration = iteration_limit*self.simulation_step
-        self.wn.set_time_params(duration=simulation_duration, hydraulic_step=self.simulation_step)
-        self.wn.init_simulation(interactive=True)
-        internal_epynet_step = 1
-        simulation_time = 0
-        step_results = None
-
-        self.register_initial_results()
-        self.results_list.append(self.values_list)
-
-        while internal_epynet_step:
-
-            # We check that all PLCs updated their local caches and local CPPPO
-            while not self.get_plcs_ready(1):
-                time.sleep(self.WAIT_FOR_FLAG)
-
-            # Notify the PLCs they can start receiving remote values
-            self.set_sync(2)
-
-            # Wait for the PLCs to apply control logic
-            while not self.get_plcs_ready(3):
-                time.sleep(self.WAIT_FOR_FLAG)
-
-            self.update_actuators()
-            #self.logger.debug('Actuator list: ' + str(self.actuator_list))
-
-            # Check for simulation error, print output on exception
-            try:
-                internal_epynet_step, step_results = self.wn.simulate_step(simulation_time, self.actuator_list)
-            except Exception as exp:
-                self.logger.error(f"Error in Epynet simulation: {exp}")
-                self.finish()
-
-            # Updates the SQLite DB
-            self.update_tanks(step_results)
-            self.update_pumps(step_results)
-            self.update_valves(step_results)
-            self.update_junctions(step_results)
-
-            # epynet - we skip intermediate timesteps
-            if (internal_epynet_step + simulation_time) // self.simulation_step > self.master_time:
-                skip_step = False
-            else:
-                skip_step = True
-
-            if not skip_step:
-
-                self.master_time += 1
-
-                if p_bar:
-                    p_bar.update(self.master_time)
-
-                self.logger.debug("Iteration {x} out of {y}. Internal timestep {z}".format
-                                  (x=str(self.master_time),
-                                   y=str(iteration_limit), z=str(internal_epynet_step)))
-
-                # This becomes ground_truth.csv
-                self.register_results(step_results)
-                self.results_list.append(self.values_list)
-
-                # Write results of this iteration if needed
-                if 'saving_interval' in self.data and self.master_time != 0 and \
-                        self.master_time % self.data['saving_interval'] == 0:
-                    self.write_results(self.results_list)
-
-            # Set sync flags for nodes
-            self.set_sync(0)
-            #with sqlite3.connect(self.data["db_path"]) as conn:
-            #    c = conn.cursor()
-            #    c.execute("UPDATE sync SET flag=0")
-            #    conn.commit()
-
-            simulation_time = simulation_time + internal_epynet_step
-            conn = sqlite3.connect(self.data["db_path"])
-            c = conn.cursor()
-            c.execute("REPLACE INTO master_time (id, time) VALUES(1, ?)", (str(self.master_time),))
-            conn.commit()
-            #time.sleep(0.3)
 
     def simulate_with_wntr(self, iteration_limit, p_bar):
         self.logger.info("Starting WNTR simulation")
-        self.wn.options.time.duration = self.wn.options.time.hydraulic_timestep
-
+        self.wn.options.time.duration = self.wn.options.time.hydraulic_timestep*iteration_limit
+        wntr.network.io.write_inpfile(self.wn, 'temp.inp', 'CMH')
+        self.remove_controls_from_inp_file('temp.inp', 'temp_processed.inp')
+        inpfile = "temp_processed.inp"
+        rptfile = "temp.rpt"
+        outfile = "temp.bin"
+        # Open EPANET files
+        self.proj = en.createproject()
+        en.open(ph=self.proj, inpFile=inpfile, rptFile=rptfile, outFile=outfile)
+        en.openH(ph=self.proj)
+        en.initH(ph=self.proj, initFlag=0)
+        en.runH(ph=self.proj)
+        idx = en.getnodeindex(ph=self.proj, id='T41')
         self.register_initial_results()
         self.results_list.append(self.values_list)
-
-        while self.master_time < iteration_limit:
-
-            # We check that all PLCs updated their local caches and local CPPPO
+        tstep = en.nextH(ph=self.proj)
+        for _ in range(iteration_limit):
+            # Wait for PLCs
             while not self.get_plcs_ready(1):
-                self.logger.debug("Waiting for " + str(self.WAIT_FOR_FLAG))
                 time.sleep(self.WAIT_FOR_FLAG)
 
-            # Notify the PLCs they can start receiving remote values
             self.set_sync(2)
-            #with sqlite3.connect(self.data["db_path"]) as conn:
-            #    c = conn.cursor()
-            #    c.execute("UPDATE sync SET flag=2")
-            #    conn.commit()
 
-            # Wait for the PLCs to apply control logic
             while not self.get_plcs_ready(3):
                 time.sleep(self.WAIT_FOR_FLAG)
-
+            # Update any controls
             self.update_controls()
-
-            self.logger.debug("Iteration {x} out of {y}.".format(x=str(self.master_time), y=str(iteration_limit)))
-
-            try:
-                self.sim.run_sim(convergence_error=True)
-            except Exception as exp:
-                self.logger.error(f"Error in WNTR simulation: {exp}")
-                self.finish()
-
-            # Updates the SQLite DB
-            self.update_tanks()
-            self.update_pumps()
-            self.update_valves()
-            self.update_junctions()
-
-            self.master_time = self.master_time + 1
+            current_time = en.runH(ph=self.proj)
+            #Skip intermediate timesteps until we have one that isn't
+            while True:
+                if (current_time) // self.simulation_step > self.master_time:
+                    break
+                else:
+                    tstep = en.nextH(ph=self.proj)
+                    current_time = en.runH(ph=self.proj)
+                    self.logger.debug("Skipping Intermediate Timestep")
+            if p_bar:
+                p_bar.update(self.master_time)
+            self.master_time += 1
+            # Get final results for this iteration
+            node_count = en.getcount(ph=self.proj, object=en.NODECOUNT)
+            link_count = en.getcount(ph=self.proj, object=en.LINKCOUNT)
+            network_state = {}
+            # Retrieve node pressures
+            for i in range(1, node_count + 1):
+                node_id = en.getnodeid(ph=self.proj, index=i)
+                node_pressure = en.getnodevalue(ph=self.proj, index=i, property=en.PRESSURE)
+                network_state[node_id] = {"pressure": node_pressure}
+            # Retrieve flow and status for each link
+            for i in range(1, link_count + 1):
+                link_id = en.getlinkid(ph=self.proj, index=i)
+                link_flow = en.getlinkvalue(ph=self.proj, index=i, property=en.FLOW)
+                link_status = en.getlinkvalue(ph=self.proj, index=i, property=en.STATUS)
+                network_state[link_id] = {"flow": link_flow, "status": link_status}
+            # Update DB with current step results
+            self.update_tanks(network_state)
+            self.update_pumps(network_state)
+            self.update_valves(network_state)
+            self.update_junctions(network_state)
+            self.calc_water_loss()
+            self.calc_demand_deficit()
             conn = sqlite3.connect(self.data["db_path"])
             c = conn.cursor()
             c.execute("REPLACE INTO master_time (id, time) VALUES(1, ?)", (str(self.master_time),))
             conn.commit()
 
-            if p_bar:
-                p_bar.update(self.master_time)
-
-            self.register_results()
+            self.register_results(network_state)
             self.results_list.append(self.values_list)
-
-            # Write results of this iteration if needed
-            if 'saving_interval' in self.data and self.master_time != 0 and \
-                    self.master_time % self.data['saving_interval'] == 0:
+            # Optionally save partial results
+            if 'saving_interval' in self.data and self.master_time != 0 \
+               and self.master_time % self.data['saving_interval'] == 0:
                 self.write_results(self.results_list)
-
-            # Set sync flags for nodes
+            tstep = en.nextH(ph=self.proj)
+            self.logger.debug(tstep)
             self.set_sync(0)
-            #with sqlite3.connect(self.data["db_path"]) as conn:
-            #    c = conn.cursor()
-            #    c.execute("UPDATE sync SET flag=0")
-            #    conn.commit()
+
+        # Close EPANET
+        en.closeH(ph=self.proj)
+        en.close(ph=self.proj)
 
     def update_tanks(self, network_state=None):
         """Update tanks in database."""
-
-        if self.simulator == 'epynet':
-            for tank in self.tank_list:
-                level = network_state[tank]['pressure']
-                tank_name = tank
-                #self.logger.debug('Writing to DB tank: ' + str(tank_name) + ' with level: ' + str(level))
-                self.set_to_db(tank_name, level)
-
-        elif self.simulator == 'wntr':
-            conn = sqlite3.connect(self.data["db_path"])
-            c = conn.cursor()
-            for tank in self.tank_list:
-                a_level = self.wn.get_node(tank).level
-                c.execute(self.db_update_string, (str(a_level), tank,))
-                conn.commit()
-        else:
-            return
+        conn = sqlite3.connect(self.data["db_path"])
+        c = conn.cursor()
+        for tank in self.tank_list:
+            a_level = network_state[tank]['pressure']
+            c.execute(self.db_update_string, (str(a_level), tank,))
+            conn.commit()
 
     def update_pumps(self, network_state=None):
         """"Update pumps in database."""
-        if self.simulator == 'epynet':
-            for pump in self.pump_list:
-                flow = network_state[pump]['flow']
-                pump_name = pump + 'F'
-                self.set_to_db(pump_name, flow)
-
-        elif self.simulator == 'wntr':
-            conn = sqlite3.connect(self.data["db_path"])
-            c = conn.cursor()
-            for pump in self.pump_list:
-                flow = Decimal(self.wn.get_link(pump).flow)
-                c.execute(self.db_update_string, (str(flow), pump + "F",))
-                conn.commit()
-        else:
-            return
+        conn = sqlite3.connect(self.data["db_path"])
+        c = conn.cursor()
+        for pump in self.pump_list:
+            flow = network_state[pump]['flow']
+            c.execute(self.db_update_string, (str(flow), pump + "F",))
+            conn.commit()
 
     def update_valves(self, network_state=None):
-        """Update valve in database."""
-        if self.simulator == 'epynet':
-            for valve in self.valve_list:
-                flow = network_state[valve]['flow']
-                valve_name = valve + 'F'
-                self.set_to_db(valve_name, flow)
-
-        elif self.simulator == 'wntr':
-            conn = sqlite3.connect(self.data["db_path"])
-            c = conn.cursor()
-            for valve in self.valve_list:
-                flow = Decimal(self.wn.get_link(valve).flow)
-                c.execute(self.db_update_string, (str(flow), valve + "F",))
-                conn.commit()
-        else:
-            return
+        conn = sqlite3.connect(self.data["db_path"])
+        c = conn.cursor()
+        for valve in self.valve_list:
+            flow = network_state[valve]['flow']
+            c.execute(self.db_update_string, (str(flow), valve + "F",))
+            conn.commit()
 
     def update_junctions(self, network_state=None):
         """Update junction pressure in database."""
-        if self.simulator == 'epynet':
-            for junction in self.scada_junction_list:
-                level = self.wn.junctions[junction].pressure.iloc[-1]
-
-                junction_name = junction
-                self.set_to_db(junction_name, level)
-        elif self.simulator == 'wntr':
-            conn = sqlite3.connect(self.data["db_path"])
-            c = conn.cursor()
-            for junction in self.scada_junction_list:
-                level = Decimal(self.wn.get_node(junction).head - self.wn.get_node(junction).elevation)
-                c.execute(self.db_update_string, (str(level), junction,))
-                conn.commit()
-        else:
-            return
+        conn = sqlite3.connect(self.data["db_path"])
+        c = conn.cursor()
+        for junction in self.scada_junction_list:
+            level = network_state[junction]['pressure']
+            c.execute(self.db_update_string, (str(level), junction,))
+            conn.commit()
 
     def interrupt(self, sig, frame):
         self.finish()
@@ -897,7 +653,8 @@ class PhysicalPlant:
     def finish(self):
         self.write_results(self.results_list)
         end_time = datetime.now()
-
+        self.water_loss_df.to_csv(Path(self.data['config_path']).parent / self.data['output_path'] / 'water_loss.csv')
+        self.demand_deficit_df.to_csv(Path(self.data['config_path']).parent / self.data['output_path'] / 'demand_deficit.csv')
         if 'batch_simulations' in self.data:
             readme_path = Path(self.data['config_path']).parent / self.data['output_path']\
                           / 'configuration' / 'batch_readme.md'
@@ -923,28 +680,18 @@ class PhysicalPlant:
             for tank in self.tank_list:
                 if str(tank) in self.data["initial_tank_values"]:
                     value = float(self.data["initial_tank_values"][str(tank)])
-
-                    if self.simulator == 'epynet':
-                        self.wn.tanks[tank].tanklevel = value
-                    else:
-                        self.wn.get_node(tank).init_level = value
+                    self.wn.get_node(tank).init_level = value
 
         if "demand_patterns_data" in self.data:
             # Demand patterns for batch
             demands = pd.read_csv(self.data["demand_patterns_data"])
-
-            if self.data["simulator"] == 'epynet':
-                for pattern in self.wn.patterns.uid:
-                    self.wn.set_demand_pattern(pattern, demands[pattern].tolist())
-            else:
-                for name, pat in self.wn.patterns():
-                    if name in demands:
-                        self.logger.debug("Setting demands for " + name +
-                                          " to demands defined at: " + self.data["demand_patterns_data"])
-                        pat.multipliers = demands[name].values.tolist()
-                    else:
-                        self.logger.debug("Consumer " + name + " has no demands defined, using default...")
-
+            for name, pat in self.wn.patterns():
+                if name in demands:
+                    self.logger.debug("Setting demands for " + name +
+                                      " to demands defined at: " + self.data["demand_patterns_data"])
+                    pat.multipliers = demands[name].values.tolist()
+                else:
+                    self.logger.debug("Consumer " + name + " has no demands defined, using default...")
 
 def is_valid_file(test_parser, arg):
     if not os.path.exists(arg):
