@@ -268,6 +268,7 @@ class SchemaParser:
                     Or('value', 'offset', only_one=True,
                        error="'tags' should have either a 'value' or 'offset' attribute."): Or(
                         float,
+                        str,
                         And(int, Use(float)),
                         And(
                             str,
@@ -697,10 +698,6 @@ class SchemaParser:
             Optional('noise_scale_data'): Path,
             Optional('network_delay_data'): Path,
             Optional('network_jitter_data'): Path,
-            Optional('simulator', default='wntr'): And(
-                str,
-                Use(str.lower),
-                Or('wntr', 'epynet')),
             Optional('mode', default='plccontrol'): And(
                 str,
                 Use(str.lower),
@@ -865,9 +862,11 @@ class ConfigParser:
         """
         if 'attacks' in self.data and 'network_attacks' in self.data['attacks']:
             network_attacks = self.data['attacks']["network_attacks"]
+            i = 1
             for network_attack in network_attacks:
                 # Check existence and validity of target PLC
-
+                network_attacks[i-1]['queue_num'] = i
+                i += 1
                 # This is the only valid target of this attack
                 if network_attack['type'] == 'unconstrained_blackbox_concealment_mitm':
                     target = 'scada'
@@ -957,10 +956,7 @@ class ConfigParser:
         yaml_data['db_path'] = self.db_path
         yaml_data['network_topology_type'] = self.data['network_topology_type']
 
-        # Simulator to be used, it can be EPANET WNTR or EPANET epynet
-        yaml_data['simulator'] = self.data['simulator']
-
-        # Add mode to intermediate yaml file 3 modes: plccontrol, scadacontrol, hybridcontrol
+        # Add WACSIM mode to intermediate yaml file 3 modes: plccontrol, scadacontrol, hybridcontrol
         yaml_data['mode'] = self.data['mode']
 
         #check if the dat is present in the config file if not leave blank
@@ -1015,8 +1011,7 @@ class ConfigParser:
         yaml_data['start_time'] = datetime.now()
         # Write values from INP file into yaml file (controls, tanks/valves/initial values, etc.)
 
-        if self.data['simulator'] == 'wntr' or self.data['simulator'] == 'epynet':
-            yaml_data = InputParser(yaml_data).write()
+        yaml_data = InputParser(yaml_data).write()
 
         # Parse the device attacks from the config file
         yaml_data = self.generate_device_attacks(yaml_data)
