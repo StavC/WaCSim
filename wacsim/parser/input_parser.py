@@ -4,8 +4,6 @@ import pandas as pd
 import wntr
 from antlr4 import *
 
-from epynet import epynetUtils
-from epynet.water_network import WaterDistributionNetwork
 from wacsim.parser.antlr.controlsLexer import controlsLexer
 from wacsim.parser.antlr.controlsParser import controlsParser
 from wacsim.py3_logger import get_logger
@@ -62,12 +60,8 @@ class InputParser:
         else:
             raise NoInpFileGiven()
         # Read the inp file with WNTR
-        self.simulator = self.data["simulator"]
 
-        if self.simulator == 'epynet':
-            self.wn = WaterDistributionNetwork(self.inp_file_path)
-        else:
-            self.wn = wntr.network.WaterNetworkModel(self.inp_file_path)
+        self.wn = wntr.network.WaterNetworkModel(self.inp_file_path)
 
         self.batch_mode = 'batch_simulations' in self.data
 
@@ -143,6 +137,7 @@ class InputParser:
                     "action": action_aux
                 })
 
+                #self.logger.debug('control:\n' + str(controls[-1]))
 
             if str(child.getChild(8)) == 'TIME':
                 # This is a TIME control
@@ -166,17 +161,10 @@ class InputParser:
         Generates duration and hydraulic timestep and adds to the
         data to be written to the yaml file.
         """
-        if self.simulator == 'epynet':
-            times = [
-                {'duration': epynetUtils.get_time_parameter(self.wn, epynetUtils.get_time_param_code('EN_DURATION'))[1]},
-                {'hydraulic_timestep': epynetUtils.get_time_parameter(
-                    self.wn, epynetUtils.get_time_param_code('EN_HYDSTEP'))[1]}
-            ]
-        else:
-            times = [
-                {"duration": self.wn.options.time.duration},
-                {"hydraulic_timestep": self.wn.options.time.hydraulic_timestep}
-            ]
+        times = [
+            {"duration": self.wn.options.time.duration},
+            {"hydraulic_timestep": self.wn.options.time.hydraulic_timestep}
+        ]
         self.data['time'] = times
 
     def generate_actuators_list(self):
@@ -188,28 +176,16 @@ class InputParser:
         pumps = []
         valves = []
 
-        if self.simulator == 'epynet':
-            for pump in self.wn.pumps:
-                pumps.append({
-                    'name': pump.uid,
-                    'initial_state': 'open' if pump.initstatus else 'closed'
-                })
-            for valve in self.wn.valves:
-                valves.append({
-                    'name': valve.uid,
-                    'initial_state': 'open' if valve.initstatus else 'closed'
-                })
-        else:
-            for pump in self.wn.pumps():
-                pumps.append({
-                    "name": pump[0],
-                    "initial_state": value_to_status(pump[1].status.value)
-                })
-            for valve in self.wn.valves():
-                valves.append({
-                    "name": valve[0],
-                    "initial_state": value_to_status(valve[1].status.value)
-                })
+        for pump in self.wn.pumps():
+            pumps.append({
+                "name": pump[0],
+                "initial_state": value_to_status(pump[1].status.value)
+            })
+        for valve in self.wn.valves():
+            valves.append({
+                "name": valve[0],
+                "initial_state": value_to_status(valve[1].status.value)
+            })
         # Append valves to pumps
         pumps.extend(valves)
         self.data['actuators'] = pumps
