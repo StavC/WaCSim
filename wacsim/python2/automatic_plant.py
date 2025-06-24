@@ -47,11 +47,7 @@ class PlantControl(NodeControl):
         This function starts the physical process and then waits for the physical
         process to finish.
         """
-
-        if self.data['simulator'] == 'wntr' or self.data['simulator'] == 'epynet':
-            physical_process_path = Path(__file__).parent.absolute().parent / "physical_process.py"
-        else:
-            raise UnsupportedSimulator('Supported simulators are wntr, epynet')
+        physical_process_path = Path(__file__).parent.absolute().parent / "physical_process.py"
 
         cmd = ["python3", str(physical_process_path), str(self.intermediate_yaml)]
 
