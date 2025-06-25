@@ -55,15 +55,15 @@ class SimpleDoSAttack(SyncedAttack):
         queue_num = self.intermediate_attack['queue_num']
         if self.direction == 'source':
             self.logger.debug(queue_num)
-            os.system(f'iptables -t mangle -A PREROUTING -p -w tcp --sport 44818 -s {self.target_plc_ip} -j NFQUEUE --queue-num {queue_num}')
+            os.system(f'iptables -w -t mangle -A PREROUTING -p tcp --sport 44818 -s {self.target_plc_ip} -j NFQUEUE --queue-num {queue_num}')
         elif self.direction == 'destination':
-            os.system(f'iptables -t mangle -A PREROUTING -p -w tcp --sport 44818 -d {self.target_plc_ip} -j NFQUEUE --queue-num {queue_num}')
+            os.system(f'iptables -w -t mangle -A PREROUTING -p tcp --sport 44818 -d {self.target_plc_ip} -j NFQUEUE --queue-num {queue_num}')
         else:
             self.logger.error('Wrong direction configured, direction must be source or destination')
             raise DirectionError('Wrong direction configured')
-        os.system('iptables -A FORWARD -p -w icmp -j DROP')
-        os.system('iptables -A INPUT -p -w icmp -j DROP')
-        os.system('iptables -A OUTPUT -p -w icmp -j DROP')
+        os.system('iptables -w -A FORWARD -p icmp -j DROP')
+        os.system('iptables -w -A INPUT -p icmp -j DROP')
+        os.system('iptables -w -A OUTPUT -p icmp -j DROP')
 
         nfqueue.bind(queue_num, self.capture)
         nfqueue.run(block=False)
@@ -121,16 +121,16 @@ class SimpleDoSAttack(SyncedAttack):
                           f"{self.intermediate_attack['gateway_ip']}")
         queue_num = self.intermediate_attack['queue_num']
         if self.direction == 'source':
-            os.system(f'iptables -t mangle -D PREROUTING -p -w tcp --sport 44818 -s {self.target_plc_ip} -j NFQUEUE --queue-num {queue_num}')
+            os.system(f'iptables -w -t mangle -D PREROUTING -p tcp --sport 44818 -s {self.target_plc_ip} -j NFQUEUE --queue-num {queue_num}')
         elif self.direction == 'destination':
-            os.system(f'iptables -t mangle -D PREROUTING -p -w tcp --sport 44818 -d {self.target_plc_ip} -j NFQUEUE --queue-num {queue_num}')
+            os.system(f'iptables -w -t mangle -D PREROUTING -p tcp --sport 44818 -d {self.target_plc_ip} -j NFQUEUE --queue-num {queue_num}')
         else:
             self.logger.error('Wrong direction configured, direction must be source or destination')
             raise DirectionError('Wrong direction configured')
 
-        os.system('iptables -D FORWARD -p -w icmp -j DROP')
-        os.system('iptables -D INPUT -p -w icmp -j DROP')
-        os.system('iptables -D OUTPUT -p -w icmp -j DROP')
+        os.system('iptables -w -D FORWARD -p icmp -j DROP')
+        os.system('iptables -w -D INPUT -p icmp -j DROP')
+        os.system('iptables -w -D OUTPUT -p icmp -j DROP')
 
         self.run_thread = False
         nfqueue.unbind()
