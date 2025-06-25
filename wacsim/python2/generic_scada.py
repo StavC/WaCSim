@@ -499,20 +499,20 @@ class GenericScada(BasePLC):
                             clock - 1, self.simple_plc_data[ip]]
 
                 # Save current state to disk periodically
-                if 'saving_interval' in self.intermediate_yaml and clock != 0 and \
-                        clock % self.intermediate_yaml['saving_interval'] == 0:
-                    self.write_output()
+            if 'saving_interval' in self.intermediate_yaml and clock != 0 and \
+                    clock % self.intermediate_yaml['saving_interval'] == 0:
+                self.write_output()
 
                 # Final sync step for this iteration
-                self.set_sync(3)
+            self.set_sync(3)
 
-                # Log the full state for this iteration
-                self.logger.debug("Scada VALUES start")
-                self.logger.debug(self.cache.loc[clock])
-                self.logger.debug("Scada VALUES end")
+            # Log the full state for this iteration
+            self.logger.debug("Scada VALUES start")
+            self.logger.debug(self.cache.loc[clock])
+            self.logger.debug("Scada VALUES end")
 
-                if test_break:
-                    break
+            if test_break:
+                break
 
 
 def create_controls(controls_list):
