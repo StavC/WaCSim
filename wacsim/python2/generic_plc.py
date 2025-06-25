@@ -571,6 +571,7 @@ class GenericPLC(BasePLC):
                 self.write_cache.loc[clock, tag] = self.cache[tag]
             if 'saving_interval' in self.intermediate_yaml and clock != 0 and clock % self.intermediate_yaml['saving_interval'] == 0:
                 self.write_output()
+            self.logger.debug(f'PLC {self.intermediate_plc["name"]} finished iteration {clock}, setting sync to 3')
             self.set_sync(3)
             if test_break:
                 break
