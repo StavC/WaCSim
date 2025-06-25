@@ -481,9 +481,9 @@ class GenericPLC(BasePLC):
             clock = self.get_master_clock()
             for sensor in LocalSensorsValues.keys():
                 self.write_cache.loc[clock, sensor[0]] = LocalSensorsValues[sensor]
+
             if self.mode == 'plccontrol':
                 SkipNextActuatorList = set()
-            if self.mode == 'plccontrol':
                 for control in self.controls:
                     if control.actuator in self.decision_maker:
                         Action = self.decision_maker[control.actuator]
@@ -508,11 +508,12 @@ class GenericPLC(BasePLC):
                                 result, SkipNextControlActuator = result
                                 if SkipNextControlActuator:
                                     SkipNextActuatorList.add(control.actuator)
-                            self.logger.debug(f'+++++++++++++ the result from the custom algo IN PLC is:  {result} ++++++++++++++++++')
+                            self.logger.debug(f'+++++++++++++ the result from the custom algo IN PLC {self.intermediate_plc["name"]} is:  {result} ++++++++++++++++++')
                             if result == 'rule':
                                 control.apply(self)
                             else:
                                 control.applyHybridDecision(self, result, None)
+                                self.logger.debug(f'PLC {self.intermediate_plc["name"]} applied decision for {control.actuator} with result {result}')
             elif self.mode == 'scadacontrol':
                 for control in self.controls:
                     CurrentAction = self.scadaCache[f'ScadaCommand_{control.actuator}']
@@ -562,7 +563,10 @@ class GenericPLC(BasePLC):
                                 control.applyHybridDecision(self, result, self.scadaCache[f'ScadaCommand_{control.actuator}'])
             for attack in self.attacks:
                 attack.apply(self)
+            self.logger.debug(f'PLC {self.intermediate_plc["name"]} is finished before time update')
             master_time = datetime.now()
+            self.logger.debug(f'PLC {self.intermediate_plc["name"]} is after time update')
+
             self.write_cache.loc[clock, 'iteration'] = clock
             self.write_cache.loc[clock, 'timestamp'] = master_time
             for scada_tag, value in self.scadaCache.items():
