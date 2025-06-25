@@ -489,14 +489,14 @@ class GenericScada(BasePLC):
                 #self.logger.debug("setting sync to 25")
                 self.set_sync(25)
 
-                # Error handling: if any PLC data is missing, log and backfill with the previous iteration's values
-                self.cache.loc[clock, 'error_flag'] = False
-                for ip in self.plc_data:
-                    if self.cache.loc[clock, self.simple_plc_data[ip]].isnull().any():
-                        self.logger.debug("Missing Data From: " + str(ip))
-                        self.cache.loc[clock, 'error_flag'] = True
-                        self.cache.loc[clock, self.simple_plc_data[ip]] = self.cache.loc[
-                            clock - 1, self.simple_plc_data[ip]]
+            # Error handling: if any PLC data is missing, log and backfill with the previous iteration's values
+            self.cache.loc[clock, 'error_flag'] = False
+            for ip in self.plc_data:
+                if self.cache.loc[clock, self.simple_plc_data[ip]].isnull().any():
+                    self.logger.debug("Missing Data From: " + str(ip))
+                    self.cache.loc[clock, 'error_flag'] = True
+                    self.cache.loc[clock, self.simple_plc_data[ip]] = self.cache.loc[
+                        clock - 1, self.simple_plc_data[ip]]
 
                 # Save current state to disk periodically
             if 'saving_interval' in self.intermediate_yaml and clock != 0 and \
