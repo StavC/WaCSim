@@ -542,7 +542,6 @@ class PhysicalPlant:
         en.openH(ph=self.proj)
         en.initH(ph=self.proj, initFlag=0)
         en.runH(ph=self.proj)
-        idx = en.getnodeindex(ph=self.proj, id='T41')
         self.register_initial_results()
         self.results_list.append(self.values_list)
         tstep = en.nextH(ph=self.proj)
