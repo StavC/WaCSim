@@ -88,12 +88,12 @@ def CheckForFlowDrop(csv_content):
 def AlgoRun(cacheDict,LocalSensorsValues):
 
     # Path to the CSV file
-    print('LocalSensorsValues:', LocalSensorsValues)
+    print('LocalSensorsValues from PLC4 P1 Algo:', LocalSensorsValues)
     #print(f'The type of LocalSensorsValues is {type(LocalSensorsValues)}')
-    print('cacheDict:', cacheDict)
+    print('cacheDict from PLC4 P1 Algo:', cacheDict)
     #print(f'The type of cacheDict is {type(cacheDict)}')
     PLCNAME='PLC4'
-    prefix = 'examples/MiniAnyTownForPaper/Final/LocalPLCDef/PLCAlgos/'
+    prefix = 'examples/EdenTown/PLC_Case/PLCAlgos/'
     csv_file = prefix + f'{PLCNAME}/data.csv'
     STATE_FILE = prefix + f'{PLCNAME}/state.txt'
 
@@ -112,7 +112,7 @@ def AlgoRun(cacheDict,LocalSensorsValues):
             last_row = csv_content.iloc[-1].to_dict()
             if all(last_row.get(key) == value for key, value in cacheDict.items()): #
                 print("The last row's iteration matches the cacheDict. Skipping update.")
-                return 'rule'
+                #return 'rule'
 
     # Update the CSV file with the cacheDict
 

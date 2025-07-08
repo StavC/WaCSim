@@ -3,7 +3,7 @@ network_attacks:
       target: PLC4
       trigger:
         type: time
-        start: 155
+        start: 145
         end: 255
       type: simple_dos
       direction: destination

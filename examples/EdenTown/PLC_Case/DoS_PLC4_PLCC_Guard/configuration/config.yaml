@@ -5,7 +5,7 @@ attacks:
     target: PLC4
     trigger:
       end: 255
-      start: 155
+      start: 145
       type: time
     type: simple_dos
 decision_maker_per_plc:

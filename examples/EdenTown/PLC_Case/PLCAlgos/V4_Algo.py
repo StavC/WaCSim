@@ -38,7 +38,7 @@ def get_csv_pointer(csv_file):
 def AlgoRun(cacheDict,LocalSensorsValues):
     # Path to the CSV file
     PLCNAME = 'PLC3'
-    prefix = 'examples/MiniAnyTownForPaper/Final/LocalPLCDef/PLCAlgos/'
+    prefix = 'examples/EdenTown/PLC_Case/PLCAlgos/'
     csv_file = prefix + f'{PLCNAME}/data.csv'
     print(f'{PLCNAME} LocalSensorsValues:', LocalSensorsValues)
     print(f'{PLCNAME} cacheDict:', cacheDict)
