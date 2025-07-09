@@ -41,7 +41,7 @@ def CheckForTeardown(csv_content, noise_threshold=0.1):
 
     # Check if the current value differs significantly from both previous values
     print(f"@@@@@@@@J2_value in CheckForTearDown: {J1_value} , {J1_value[0]}@@@@@@@@@@@@@")
-    if J1_value[0] <=55.0 and J1_value[0] > 5:
+    if J1_value[0] <=56.0 and J1_value[0] > 5:
         print("Teardown condition met: Less than 50 Pressure in J1, returning to rule")
         return True
 
@@ -110,9 +110,9 @@ def AlgoRun(cacheDict,LocalSensorsValues):
         # Check if the last row matches the cacheDict
         if not csv_content.empty:
             last_row = csv_content.iloc[-1].to_dict()
-            if all(last_row.get(key) == value for key, value in cacheDict.items()): #
+            if (all(last_row.get(key) == value for key, value in cacheDict.items())) and (all(last_row.get(key) == value for key, value in LocalSensorsValues.items())) : #
                 print("The last row's iteration matches the cacheDict. Skipping update.")
-                #return 'rule'
+                return 'rule'
 
     # Update the CSV file with the cacheDict
 

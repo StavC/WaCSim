@@ -1,6 +1,6 @@
 ; Filename: /home/vboxuser/Desktop/WaCSim/examples/EdenTown/PLC_Case/EdenTown.inp
 ; WNTR: 1.3.2
-; Created: 2025-07-08 23:21:17
+; Created: 2025-07-09 00:04:22
 [TITLE]
 Anytown master file for rl-wds
 
@@ -183,7 +183,7 @@ DEMAND CHARGE          0.0000
 ;Tank ID             Model Fraction
 
 [TIMES]
-DURATION             33:20:00
+DURATION             50:00:00
 HYDRAULIC TIMESTEP   00:05:00
 QUALITY TIMESTEP     00:05:00
 PATTERN TIMESTEP     01:00:00
