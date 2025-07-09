@@ -126,13 +126,21 @@ def AlgoRun(cacheDict,LocalSensorsValues):
 
     if os.path.exists(STATE_FILE):
         print("State file detected.")
-        if CheckForTeardown(csv_content) == True:
-            os.remove(STATE_FILE)  # Reset state
-            print("Teardown condition met. State reset to 'rule'.")
-            return 'rule'
-        print('returning closed')
-        return 'closed', True
+        with open(STATE_FILE, 'r') as f:
+            state = f.read().strip()
 
+        if CheckForTeardown(csv_content):
+            with open(STATE_FILE, 'w') as f:
+                f.write('open')  # Reset the state without deleting the file
+            print("Teardown condition met. State set to 'open'.")
+            return 'open', True
+
+        if state == 'closed':
+            print('Returning closed state.')
+            return 'closed', True
+        elif state == 'open':
+            print('Returning open state.')
+            return 'open', True
 
     # Check for DoS attack and start Guard routine if detected
     if CheckForFlowDrop(csv_content):
