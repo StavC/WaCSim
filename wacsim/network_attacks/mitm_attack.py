@@ -108,19 +108,19 @@ class MiTMAttack(SyncedAttack):
     def modify_ip_tables(self, append=True):
         queue_num = self.intermediate_attack['queue_num']
         if append:
-            os.system(f'iptables -t mangle -A PREROUTING -p tcp -j NFQUEUE --queue-num {queue_num}')
+            os.system(f'iptables -w -t mangle -A PREROUTING -p tcp -j NFQUEUE --queue-num {queue_num}')
 
-            os.system('iptables -A FORWARD -p icmp -j DROP')
-            os.system('iptables -A INPUT -p icmp -j DROP')
-            os.system('iptables -A OUTPUT -p icmp -j DROP')
+            os.system('iptables -w -A FORWARD -p icmp -j DROP')
+            os.system('iptables -w -A INPUT -p icmp -j DROP')
+            os.system('iptables -w -A OUTPUT -p icmp -j DROP')
         else:
 
-            os.system(f'iptables -t mangle -D INPUT -p tcp -j NFQUEUE --queue-num {queue_num}')
-            os.system(f'iptables -t mangle -D FORWARD -p tcp -j NFQUEUE --queue-num {queue_num}')
+            os.system(f'iptables -w -t mangle -D INPUT -p tcp -j NFQUEUE --queue-num {queue_num}')
+            os.system(f'iptables -w -t mangle -D FORWARD -p tcp -j NFQUEUE --queue-num {queue_num}')
 
-            os.system('iptables -D FORWARD -p icmp -j DROP')
-            os.system('iptables -D INPUT -p icmp -j DROP')
-            os.system('iptables -D OUTPUT -p icmp -j DROP')
+            os.system('iptables -w -D FORWARD -p icmp -j DROP')
+            os.system('iptables -w -D INPUT -p icmp -j DROP')
+            os.system('iptables -w -D OUTPUT -p icmp -j DROP')
 
 def is_valid_file(parser_instance, arg):
     """Verifies whether the intermediate yaml path is valid."""

