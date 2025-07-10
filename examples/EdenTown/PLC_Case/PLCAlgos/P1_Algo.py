@@ -110,7 +110,7 @@ def AlgoRun(cacheDict,LocalSensorsValues):
         # Check if the last row matches the cacheDict
         if not csv_content.empty:
             last_row = csv_content.iloc[-1].to_dict()
-            if (all(last_row.get(key) == value for key, value in cacheDict.items())) and (all(last_row.get(key) == value for key, value in LocalSensorsValues.items())) : #
+            if (all(last_row.get(key) == value for key, value in cacheDict.items())) : #
                 print("The last row's iteration matches the cacheDict. Skipping update.")
                 return 'rule'
 
