@@ -28,8 +28,8 @@ Mininet links can be found in the file mininet_links.md in this configuration fo
 
 Ran with wacsim v1.1.1.
 
-Ran for 600 out of 600 iterations with hydraulic timestep 300.
+Ran for 400 out of 400 iterations with hydraulic timestep 300.
 
-Started at 2025-07-10 14:35:18 and finished at 2025-07-10 15:11:51.
+Started at 2025-07-10 15:24:39 and finished at 2025-07-10 15:50:22.
 
-The duration of this simulation was 0:36:33.228309.
+The duration of this simulation was 0:25:42.525343.

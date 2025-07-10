@@ -24,7 +24,7 @@ decision_maker_per_plc:
 demand: pdd
 demand_patterns: demands_EdenTown.csv
 inp_file: EdenTown.inp
-iterations: 600
+iterations: 400
 log_level: debug
 mode: plccontrol
 network_topology_type: complex

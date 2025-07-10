@@ -1,6 +1,6 @@
 inp_file: EdenTown.inp
 output_path: DoS_PLC4_PLCC_Guard
-iterations: 600
+iterations: 400
 network_topology_type: complex
 plcs: !include EdenTown_plc.yaml
 demand: pdd
