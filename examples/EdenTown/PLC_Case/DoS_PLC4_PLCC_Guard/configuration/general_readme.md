@@ -30,6 +30,6 @@ Ran with wacsim v1.1.1.
 
 Ran for 400 out of 400 iterations with hydraulic timestep 300.
 
-Started at 2025-07-10 15:24:39 and finished at 2025-07-10 15:50:22.
+Started at 2025-07-10 16:47:30 and finished at 2025-07-10 17:11:49.
 
-The duration of this simulation was 0:25:42.525343.
+The duration of this simulation was 0:24:19.101317.
