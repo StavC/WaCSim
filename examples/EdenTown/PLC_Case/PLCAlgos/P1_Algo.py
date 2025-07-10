@@ -124,32 +124,29 @@ def AlgoRun(cacheDict,LocalSensorsValues):
 
     # Check if Guard routine is active
 
+    current_state = 'rule'
     if os.path.exists(STATE_FILE):
-        print("State file detected.")
         with open(STATE_FILE, 'r') as f:
-            state = f.read().strip()
+            current_state = f.read().strip()
+        print(f"State file detected with state: {current_state}")
 
+    if current_state == 'closed':
         if CheckForTeardown(csv_content):
             with open(STATE_FILE, 'w') as f:
-                f.write('open')  # Reset the state without deleting the file
-            print("Teardown condition met. State set to 'open'.")
-            return 'open', True
-
-        if state == 'closed':
-            print('Returning closed state.')
-            return 'closed', True
-        elif state == 'open':
-            print('Returning open state.')
-            return 'open', True
-
-    # Check for DoS attack and start Guard routine if detected
-    if CheckForFlowDrop(csv_content):
-        with open(STATE_FILE, 'w') as f:
-            f.write('closed')  # Persist the 'close' state
-        print("Flow drop detected. Setting state to 'closed'.")
+                f.write('rule')
+            print("Teardown condition met. State set to 'rule'.")
+            return 'rule'
+        print("Guard still active. Returning 'closed'.")
         return 'closed', True
 
-    print("No Drop flow detected.")
+    # If no guard active, check for flow drop
+    if CheckForFlowDrop(csv_content):
+        with open(STATE_FILE, 'w') as f:
+            f.write('closed')
+        print("Flow drop detected. State set to 'closed'.")
+        return 'closed', True
+
+    print("Normal operation. Returning 'rule'.")
     return 'rule'
 
 
