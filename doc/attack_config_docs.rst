@@ -100,7 +100,9 @@ type
 
 **Takes:** ``naive_mitm``, ``mitm``, ``server_mitm``, ``concealment_mitm``, ``unconstrained_blackbox_concealment_mitm``, ``replay_mitm``, or ``simple_dos``.
 
-The attack type determines the underlying mechanism. Currently, there are two primary categories: man-in-the-middle (MitM) attacks and denial-of-service (DoS) attacks.
+The attack type determines the underlying mechanism. Currently, there are two primary categories: man-in-the-middle (MitM) attacks and denial-of-service (DoS) attacks. The following table showcases the connection types that can be targeted by each attack:
+
+.. figure:: static/attack_connections.png
 
 naive_mitm
 ~~~~~~~~~~

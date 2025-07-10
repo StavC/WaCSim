@@ -10,7 +10,7 @@ communication between components in a WDS under the conditions of a cyberattack.
 using `minicps`_. These two separate simulations are connected via a database, with the network communication using the results from the hydraulic part, and the hydraulic
 simulation taking actuator commands from the network part. Attackers are specified by the user, and will then interact with the other components in the WDS, manipulating the data they send and recieve.
 
-.. figure:: static/WaCSim_flowchart.png
+.. figure:: static/Wacsim_Diag.drawio.png
 
 More information on how these systems interact, and how the simulation is run can be found on the `Developing`_ page of the
 original WaCSim documentation.

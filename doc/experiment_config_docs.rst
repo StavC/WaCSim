@@ -25,7 +25,6 @@ the file that is used to start the simulation in the terminal.
    batch_simulations: 1
    saving_interval: 0
    demand: PDD
-   simulator: wntr
    noise_scale: 0.05
    network_loss_data: example_network_loss_data.csv
    network_delay_data: example_network_delay_data.csv
@@ -139,16 +138,6 @@ the default in EPANET.
 In contrast, pressure driven demand (represented by ``PDD``) allows for the demand at each junction to fluctuate with the pressure in the system. This generally prevents negative pressures
 from occurring in the system but may lead to scenarios where the demand at each node is not met. For WaCSim, PDD is recommended due to the frequency of scenarios in which the system does
 not behave correctly (due to an attacker) and using demand driven analysis has a higher chance of unrealistic system states.
-
-simulator
----------
-**Takes** ``wntr`` **or** ``epynet``. **(default:** ``wntr`` **)**
-
-The simulator is what is used to perform the EPANET hydraulic simulation. `WNTR`_ is a toolkit built to test water distribution system resiliency, and running the EPANET hydraulic simulation
-is only a small part of its capabilities. On the other hand, `epynet`_ is an EPANET wrapper solely built to run the EPANET simulation engine.
-
-When performing device attacks, the only way to modify a pump's speed is to use the `epynet` option. Additionally, epynet is potentially faster. However, because the hydraulic simulation is so
-fast compared to the network emulation with mininet, the difference is negligible.
 
 noise_scale_data
 -----------------
@@ -301,8 +290,6 @@ actuators
 The sensors listed here define which actuators are controlled PLC, and what actuator data other PLCs can request from it. There are no constraints or limitations on what actuators can be added to a PLC, however generally PLCs should contain actuators within a certain physical region of the network.
 
 .. _`EPANET`: https://www.epa.gov/water-research/epanet
-.. _`WNTR`: https://github.com/USEPA/WNTR
-.. _`epynet`: https://github.com/Vitens/epynet
 .. _`NumPy`: https://numpy.org/doc/2.1/reference/random/generated/numpy.random.normal.html
 .. _`here`: https://man7.org/linux/man-pages/man8/tc-netem.8.html
 .. _`documentation section`: experiment_config_docs#PLC Config Options
