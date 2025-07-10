@@ -48,37 +48,48 @@ def CheckForTeardown(csv_content, noise_threshold=0.1):
 
     return False
 
-
-def CheckForFlowDrop(csv_content):
-    lenP1F = len(csv_content['P1F'])
-    if 'P1F' not in csv_content or lenP1F < 20:
+def CheckForFlowDrop(csv_content, drop_cache_file):
+    if 'P1F' not in csv_content or len(csv_content['P1F']) < 20:
         print("Insufficient data for P1F to detect a drop.")
         return False
 
-    # Get the last non-zero P1F values
+    # Get the last 2 non-zero P1F values
     P1F_values = csv_content['P1F'][csv_content['P1F'] > 0].iloc[-2:].values
 
-    # Check if we have at least two valid values
     if len(P1F_values) < 2:
         print("Not enough non-zero P1F values to detect a drop.")
         return False
 
-    # Calculate the drop
     drop = P1F_values[0] - P1F_values[1]
+    fingerprint = f"{P1F_values[0]:.2f}_{P1F_values[1]:.2f}"
 
     print("&&&&&&&&&&&&&&&&&")
     print(f"P1F_values[0]: {P1F_values[0]}, P1F_values[1]: {P1F_values[1]}")
     print(f'drop: {drop}')
     print("&&&&&&&&&&&&&&&&&")
 
-    # Check if the drop is within the specified range (10 to 150)
-    if 25 <= drop <= 150:
-        print(f"Flow drop detected: {drop}")
-        return True
+    # Read all past fingerprints
+    if os.path.exists(drop_cache_file):
+        with open(drop_cache_file, 'r') as f:
+            past_fingerprints = set(line.strip() for line in f if line.strip())
     else:
-        print(f"No significant flow drop detected. Drop: {drop}")
+        past_fingerprints = set()
 
+    # If this drop has already been handled, skip it
+    if fingerprint in past_fingerprints:
+        print(f"Drop {fingerprint} already recorded. Skipping.")
+        return False
+
+    # Check if the drop is significant
+    if 25 <= drop <= 150:
+        print(f"New unique flow drop detected: {drop}")
+        with open(drop_cache_file, 'a') as f:
+            f.write(fingerprint + '\n')
+        return True
+
+    print(f"No significant flow drop detected. Drop: {drop}")
     return False
+
 
 
 
@@ -97,6 +108,8 @@ def AlgoRun(cacheDict,LocalSensorsValues):
     prefix = 'examples/EdenTown/PLC_Case/PLCAlgos/'
     csv_file = prefix + f'{PLCNAME}/data.csv'
     STATE_FILE = prefix + f'{PLCNAME}/state.txt'
+    DROP_CACHE_FILE = prefix + f'{PLCNAME}/drop_state.txt'
+
 
     DataDict = {sensor: value for (sensor, _), value in LocalSensorsValues.items()}
     DataDict.update(cacheDict)  # Merge cacheDict values into DataDict
@@ -144,7 +157,7 @@ def AlgoRun(cacheDict,LocalSensorsValues):
         return 'closed', True
 
     # If no guard active, check for flow drop
-    if CheckForFlowDrop(csv_content):
+    if CheckForFlowDrop(csv_content, DROP_CACHE_FILE):
         with open(STATE_FILE, 'w') as f:
             f.write('closed')
         print("Flow drop detected. State set to 'closed'.")
