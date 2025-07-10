@@ -4,7 +4,7 @@ attacks:
     name: plc4AttackerUnit
     target: PLC4
     trigger:
-      end: 255
+      end: 245
       start: 145
       type: time
     type: simple_dos

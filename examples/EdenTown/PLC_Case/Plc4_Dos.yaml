@@ -4,7 +4,7 @@ network_attacks:
       trigger:
         type: time
         start: 145
-        end: 255
+        end: 245
       type: simple_dos
       direction: destination
 
