@@ -34,9 +34,7 @@ def get_csv_pointer(csv_file):
     return pd.read_csv(csv_file)
 
 
-
-def AlgoRun(cacheDict,LocalSensorsValues):
-    # Path to the CSV file
+def AlgoRun(cacheDict, LocalSensorsValues):
     PLCNAME = 'PLC2'
     prefix = 'examples/EdenTown/PLC_Case/PLCAlgos/'
     csv_file = prefix + f'{PLCNAME}/data.csv'
@@ -44,43 +42,52 @@ def AlgoRun(cacheDict,LocalSensorsValues):
     print(f'{PLCNAME} cacheDict:', cacheDict)
 
     DataDict = {sensor: value for (sensor, _), value in LocalSensorsValues.items()}
-    DataDict.update(cacheDict)  # Merge cacheDict values into DataDict
+    DataDict.update(cacheDict)
 
-
-
-    # Read the CSV and get a pointer to its content
     if os.path.exists(csv_file):
         csv_content = get_csv_pointer(csv_file)
 
-        # Check if the last row matches the cacheDict
         if not csv_content.empty:
             last_row = csv_content.iloc[-1].to_dict()
-            if all(last_row.get(key) == value for key, value in DataDict.items()): #
+            if all(last_row.get(key) == value for key, value in DataDict.items()):
                 print(f"{PLCNAME} The last row's iteration matches the cacheDict. Skipping update.")
                 return 'rule'
 
-    # Update the CSV file with the cacheDict 2
+    # Get previous failsafe counter if exists
+    failsafe_counter = 0
+    if os.path.exists(csv_file):
+        csv_content = get_csv_pointer(csv_file)
+        if 'FailsafeCounter' in csv_content.columns and not csv_content.empty:
+            last_counter = csv_content['FailsafeCounter'].iloc[-1]
+            failsafe_counter = max(int(last_counter) - 1, 0)
 
+    DataDict['FailsafeCounter'] = failsafe_counter  # Store updated counter
 
     update_csv_with_cache(DataDict, csv_file)
 
-    # Reload the CSV after the update
+    # Reload CSV to evaluate current state
     csv_content = get_csv_pointer(csv_file)
-
-
     lenJ5 = len(csv_content['J5'])
-    if csv_content['T1'].iloc[-1:].values[0] >=10.0:
-        if csv_content['J5'].iloc[-1:].values[0] <=57.0 and lenJ5 > 20:
-            print(f'J5 value is less than 50, meaning that the pump is off hence we can open the valve')
-            return 'open',True
+    latest = csv_content.iloc[-1]
+
+    if latest['T1'] >= 10.0:
+        if latest['J5'] <= 57.0 and lenJ5 > 20:
+            print('J5 value is less than 57, meaning that the pump is off hence we can open the valve')
+            DataDict['FailsafeCounter'] = 3  # Set failsafe when reopening pump
+            update_csv_with_cache(DataDict, csv_file)
+            return 'open', True
         else:
-
-            print('Tank is almost full, closing the valve')
-            return 'closed',True
-
+            # Only allow closing if failsafe counter is 0
+            if latest['FailsafeCounter'] > 0:
+                print('Failsafe active: Preventing pump closure for remaining iterations.')
+                return 'open', True
+            else:
+                print('Tank is almost full, closing the valve')
+                return 'closed', True
     else:
         print('Tank is not full, opening the valve')
         return 'open', True
+
 
 
 
