@@ -29,9 +29,7 @@ setuptools.setup(
         'netaddr',
         'flaky',
         'pytest',
-        'tensorflow',
         'scikit-learn',
-        'keras',
         'pytest',
         'pytest-mock',
         'mock'
