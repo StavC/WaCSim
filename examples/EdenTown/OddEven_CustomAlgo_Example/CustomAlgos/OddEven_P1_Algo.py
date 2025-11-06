@@ -1,32 +1,43 @@
 #!/usr/bin/env python3
 """
-Odd/Even Tank Level Control Algorithm
-======================================
+Stateful Alternating Pump Control Algorithm - P1
+=================================================
 
-This algorithm demonstrates the NEW FEATURE where custom algorithms 
-can be used WITHOUT defining controls in the INP file's [CONTROLS] section.
+This algorithm demonstrates a STATEFUL custom algorithm that uses a JSON file
+to track state across iterations (no INP control needed).
 
 Control Logic:
-- Reads tank T1 level (via the 'dependent' field in YAML)
-- If tank level (as integer) is EVEN: Turn pump P1 ON
-- If tank level (as integer) is ODD: Turn pump P1 OFF
+- 5 iterations with pump OPEN
+- 5 iterations with pump CLOSED
+- Repeat indefinitely
 
-This is a simple demonstration to show that:
+State Tracking:
+- Uses P1_state.json to persist iteration count and current state
+- JSON format: {"iteration": N, "state": "open"/"closed"}
+
+This demonstrates:
 1. No INP control is needed for P1
-2. The dependent sensor (T1) is automatically registered
-3. Custom algorithm executes at every iteration
+2. Custom algorithm maintains state across iterations
+3. State persists in a JSON file
 
 YAML Configuration:
     - name: PLC4
       actuators:
         - name: P1
           decision_maker: examples/EdenTown/OddEven_CustomAlgo_Example/CustomAlgos/OddEven_P1_Algo.py
-          dependent: T1
+          dependents: []  # No sensors needed for time-based control
 """
+
+import json
+import os
+
+# State file path - in same directory as this script
+STATE_FILE = os.path.join(os.path.dirname(__file__), "P1_state.json")
+ITERATIONS_PER_STATE = 5
 
 def AlgoRun(plc_cache, plc_dict, scada_cache=None):
     """
-    Control pump P1 based on whether tank T1 level is odd or even.
+    Control pump P1 by alternating: 5 iterations open, 5 iterations closed.
     
     Args:
         plc_cache: Dictionary of values received from other PLCs
@@ -34,24 +45,43 @@ def AlgoRun(plc_cache, plc_dict, scada_cache=None):
         scada_cache: Dictionary of SCADA commands (in hybrid mode)
     
     Returns:
-        str: "open" if tank level is even, "closed" if odd
+        str: "open" or "closed" based on iteration count
     """
     
-    # Get tank T1 level - this sensor is automatically available
-    # because we specified it as 'dependent' in the YAML config
-    tank_level = plc_dict.get(('T1', 1), 0.0)
-    
-    # Convert to integer to check odd/even
-    tank_level_int = int(tank_level)
-    
-    # Determine if odd or even
-    is_even = (tank_level_int % 2 == 0)
-    
-    # Control logic:
-    # EVEN tank level -> Pump ON (open)
-    # ODD tank level -> Pump OFF (closed)
-    if is_even:
-        return "open"
+    # Load or initialize state
+    if os.path.exists(STATE_FILE):
+        with open(STATE_FILE, 'r') as f:
+            state = json.load(f)
     else:
-        return "closed"
-
+        # Initialize: start with pump open for first 5 iterations
+        state = {
+            "iteration": 1,
+            "state": "open"
+        }
+    
+    # Get current state
+    current_iteration = state["iteration"]
+    current_state = state["state"]
+    
+    # Determine action for this iteration
+    action = current_state
+    
+    # Increment iteration counter
+    new_iteration = current_iteration + 1
+    
+    # Check if we need to toggle state (every 5 iterations)
+    if new_iteration > ITERATIONS_PER_STATE:
+        # Toggle state
+        new_state = "closed" if current_state == "open" else "open"
+        new_iteration = 1  # Reset counter
+    else:
+        new_state = current_state
+    
+    # Save updated state
+    state["iteration"] = new_iteration
+    state["state"] = new_state
+    
+    with open(STATE_FILE, 'w') as f:
+        json.dump(state, f, indent=2)
+    
+    return action

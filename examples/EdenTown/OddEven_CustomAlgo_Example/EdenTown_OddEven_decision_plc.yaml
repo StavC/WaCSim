@@ -1,25 +1,26 @@
-# EdenTown Odd/Even Custom Algorithm Example
-# ===========================================
+# EdenTown Stateful Alternating Pump Control Example
+# ==================================================
 # This configuration demonstrates the NEW FEATURE where custom algorithms
 # can be used WITHOUT defining control rules in the INP file.
 #
 # Key Points:
 # 1. NO [CONTROLS] section needed in the INP file for P1 or P2
-# 2. The 'dependent' field specifies which tank sensor each algorithm reads
-# 3. WaCSim automatically creates synthetic controls and registers dependent sensors
-# 4. Algorithms execute at every iteration
+# 2. The 'dependents' field is optional (empty for time-based algorithms)
+# 3. WaCSim automatically creates synthetic controls
+# 4. Algorithms execute at every iteration and maintain state via JSON files
 #
 # Control Logic:
-# - P1 (controlled by PLC4): ON if T1 level is even, OFF if odd
-# - P2 (controlled by PLC1): ON if T2 level is even, OFF if odd
+# - P1 (controlled by PLC4): 5 iterations OPEN, 5 iterations CLOSED, repeat
+# - P2 (controlled by PLC1): 5 iterations OPEN, 5 iterations CLOSED, repeat
 # - V4 and V5 still use the original custom algorithms (backward compatibility)
+# - State persists in P1_state.json and P2_state.json files
 
 - name: PLC1
   actuators:
     # NEW FEATURE: P2 controlled by custom algorithm WITHOUT INP control
     - name: P2
       decision_maker: examples/EdenTown/OddEven_CustomAlgo_Example/CustomAlgos/OddEven_P2_Algo.py
-      dependents: [T2]  # List of required dependent sensors (automatically registered)
+      dependents: []  # No sensors needed - stateful time-based control
 
 - name: PLC2
   actuators:
@@ -38,5 +39,5 @@
     # NEW FEATURE: P1 controlled by custom algorithm WITHOUT INP control
     - name: P1
       decision_maker: examples/EdenTown/OddEven_CustomAlgo_Example/CustomAlgos/OddEven_P1_Algo.py
-      dependents: [T1]  # List of required dependent sensors (automatically registered)
+      dependents: []  # No sensors needed - stateful time-based control
 
