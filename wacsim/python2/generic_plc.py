@@ -90,7 +90,7 @@ class GenericPLC(BasePLC):
         # Create list of dependant sensors
         dependant_sensors = []
         for control in self.intermediate_controls:
-            if control["type"] != "Time":
+            if "dependant" in control:
                 dependant_sensors.append(control["dependant"])
         # Create list of PLC sensors
         plc_sensors = self.intermediate_plc['sensors']
