@@ -636,10 +636,10 @@ class SchemaParser:
                     SchemaParser.string_pattern
                 ),
                 'decision_maker': object,
-                Optional('dependent'): And(
+                'dependents': [And(
                     str,
                     SchemaParser.string_pattern
-                )
+                )]
 
             }]
         }])
@@ -656,10 +656,10 @@ class SchemaParser:
                     SchemaParser.string_pattern
                 ),
                 'decision_maker': object,
-                Optional('dependent'): And(
+                'dependents': [And(
                     str,
                     SchemaParser.string_pattern
-                )
+                )]
 
             }]
         }])

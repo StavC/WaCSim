@@ -63,9 +63,9 @@ When you specify a custom algorithm (a Python file path) as the ``decision_maker
 2. Register any dependent sensors you specify
 3. Execute your custom algorithm at each simulation step
 
-**Configuration with Dependent Sensor:**
+**Configuration with Dependent Sensors (REQUIRED):**
 
-If your custom algorithm needs to read a sensor value, specify it using the ``dependent`` field:
+You must specify the sensors your custom algorithm needs using the ``dependents`` field as a list:
 
 .. code-block:: yaml
 
@@ -73,25 +73,26 @@ If your custom algorithm needs to read a sensor value, specify it using the ``de
      actuators:
        - name: P1
          decision_maker: custom_algos/tank_controller.py
-         dependent: T101  # Tank sensor that the algorithm will read
+         dependents: [T101]  # List of sensors the algorithm reads (REQUIRED)
 
-This ensures:
+**Multiple Dependent Sensors:**
 
-- The dependent sensor ``T101`` is properly registered in the PLC's sensor list
-- The sensor value is available in the algorithm's input dictionaries
-- A synthetic control is created (so the custom algorithm runs at every iteration)
-
-**Configuration without Dependent Sensor:**
-
-If your algorithm doesn't need a specific dependent sensor (e.g., it uses time-based logic or multiple sensors):
+You can specify multiple sensors that your algorithm needs:
 
 .. code-block:: yaml
 
    - name: PLC2
      actuators:
        - name: P2
-         decision_maker: custom_algos/time_based_control.py
-         # No 'dependent' field needed
+         decision_maker: custom_algos/multi_sensor_control.py
+         dependents: [T101, T102, T103]  # Multiple sensors
+
+This ensures:
+
+- All sensors in the ``dependents`` list are properly registered
+- Sensor values are available in the algorithm's input dictionaries
+- TWO synthetic TIME controls are created (at time 0 and at simulation end)
+- The custom algorithm executes at every iteration and overrides the time controls
 
 **Backward Compatibility:**
 

@@ -19,7 +19,7 @@
     # NEW FEATURE: P2 controlled by custom algorithm WITHOUT INP control
     - name: P2
       decision_maker: examples/EdenTown/OddEven_CustomAlgo_Example/CustomAlgos/OddEven_P2_Algo.py
-      dependent: T2  # T2 sensor is automatically registered
+      dependents: [T2]  # List of required dependent sensors (automatically registered)
 
 - name: PLC2
   actuators:
@@ -38,5 +38,5 @@
     # NEW FEATURE: P1 controlled by custom algorithm WITHOUT INP control
     - name: P1
       decision_maker: examples/EdenTown/OddEven_CustomAlgo_Example/CustomAlgos/OddEven_P1_Algo.py
-      dependent: T1  # T1 sensor is automatically registered
+      dependents: [T1]  # List of required dependent sensors (automatically registered)
 

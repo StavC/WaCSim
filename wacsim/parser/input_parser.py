@@ -165,6 +165,8 @@ class InputParser:
         Adds dependent sensors from decision_maker_per_plc and decision_maker_per_scadacommand
         configurations to the appropriate PLCs' dependent_sensors list.
         This ensures custom algorithms have access to the sensors they need.
+        
+        Now supports 'dependents' as a required list of sensor names.
         """
         # Handle PLC mode decision makers
         if 'decision_maker_per_plc' in self.data and self.data['decision_maker_per_plc']:
@@ -174,17 +176,19 @@ class InputParser:
                     if plc['name'] == dm_plc['name']:
                         # Process each actuator's decision maker
                         for actuator_config in dm_plc.get('actuators', []):
-                            if 'dependent' in actuator_config:
-                                dependent = actuator_config['dependent']
-                                # Add to dependent_sensors if not already present
-                                if 'dependent_sensors' in plc:
-                                    if dependent not in plc['dependent_sensors']:
-                                        plc['dependent_sensors'].append(dependent)
-                                        self.logger.debug(f"Added dependent sensor '{dependent}' to PLC '{plc['name']}' for custom algorithm on actuator '{actuator_config['name']}'")
-                                elif 'dependant_sensors' in plc:
-                                    if dependent not in plc['dependant_sensors']:
-                                        plc['dependant_sensors'].append(dependent)
-                                        self.logger.debug(f"Added dependent sensor '{dependent}' to PLC '{plc['name']}' for custom algorithm on actuator '{actuator_config['name']}'")
+                            if 'dependents' in actuator_config:
+                                dependents_list = actuator_config['dependents']
+                                # Add each dependent to the PLC's sensor list
+                                for dependent in dependents_list:
+                                    # Add to dependent_sensors if not already present
+                                    if 'dependent_sensors' in plc:
+                                        if dependent not in plc['dependent_sensors']:
+                                            plc['dependent_sensors'].append(dependent)
+                                            self.logger.debug(f"Added dependent sensor '{dependent}' to PLC '{plc['name']}' for custom algorithm on actuator '{actuator_config['name']}'")
+                                    elif 'dependant_sensors' in plc:
+                                        if dependent not in plc['dependant_sensors']:
+                                            plc['dependant_sensors'].append(dependent)
+                                            self.logger.debug(f"Added dependent sensor '{dependent}' to PLC '{plc['name']}' for custom algorithm on actuator '{actuator_config['name']}'")
                         break
 
         # Handle SCADA mode decision makers
@@ -195,33 +199,38 @@ class InputParser:
                     if plc['name'] == dm_plc['name']:
                         # Process each actuator's decision maker
                         for actuator_config in dm_plc.get('actuators', []):
-                            if 'dependent' in actuator_config:
-                                dependent = actuator_config['dependent']
-                                # Add to dependent_sensors if not already present
-                                if 'dependent_sensors' in plc:
-                                    if dependent not in plc['dependent_sensors']:
-                                        plc['dependent_sensors'].append(dependent)
-                                        self.logger.debug(f"Added dependent sensor '{dependent}' to PLC '{plc['name']}' for custom algorithm on actuator '{actuator_config['name']}'")
-                                elif 'dependant_sensors' in plc:
-                                    if dependent not in plc['dependant_sensors']:
-                                        plc['dependant_sensors'].append(dependent)
-                                        self.logger.debug(f"Added dependent sensor '{dependent}' to PLC '{plc['name']}' for custom algorithm on actuator '{actuator_config['name']}'")
+                            if 'dependents' in actuator_config:
+                                dependents_list = actuator_config['dependents']
+                                # Add each dependent to the PLC's sensor list
+                                for dependent in dependents_list:
+                                    # Add to dependent_sensors if not already present
+                                    if 'dependent_sensors' in plc:
+                                        if dependent not in plc['dependent_sensors']:
+                                            plc['dependent_sensors'].append(dependent)
+                                            self.logger.debug(f"Added dependent sensor '{dependent}' to PLC '{plc['name']}' for custom algorithm on actuator '{actuator_config['name']}'")
+                                    elif 'dependant_sensors' in plc:
+                                        if dependent not in plc['dependant_sensors']:
+                                            plc['dependant_sensors'].append(dependent)
+                                            self.logger.debug(f"Added dependent sensor '{dependent}' to PLC '{plc['name']}' for custom algorithm on actuator '{actuator_config['name']}'")
                         break
 
     def generate_synthetic_controls_for_custom_algorithms(self):
         """
-        Creates synthetic time controls for actuators that have custom decision makers
+        Creates synthetic TIME controls for actuators that have custom decision makers
         but no control rules defined in the INP file.
         
         These synthetic controls:
-        - Span the entire simulation duration (time 0 to end)
-        - Use 'open' as the default action
-        - Allow the custom algorithm to be executed at every iteration
-        - Include the dependent sensor if specified in the decision_maker config
+        - Create TWO TIME controls: one at time 0 (start) and one at last iteration (end)
+        - This ensures the actuator is in the control loop throughout the simulation
+        - The custom algorithm will execute and override these controls at every iteration
+        - Dependents list is required and all sensors are registered
         """
-        # Get simulation duration (will be available after generate_times is called or from INP)
-        # We need to ensure times are generated first, so let's read it from the WNTR network
+        # Get simulation duration from WNTR network
         duration = self.wn.options.time.duration
+        hydraulic_timestep = self.wn.options.time.hydraulic_timestep
+        
+        # Calculate last iteration time
+        last_iteration = int(duration)
         
         # Collect all decision makers from both PLC and SCADA modes
         decision_makers = {}
@@ -235,7 +244,7 @@ class InputParser:
                 for actuator_config in dm_plc.get('actuators', []):
                     decision_makers[plc_name][actuator_config['name']] = {
                         'decision_maker': actuator_config.get('decision_maker'),
-                        'dependent': actuator_config.get('dependent', None)
+                        'dependents': actuator_config.get('dependents', [])
                     }
         
         # Handle SCADA mode decision makers
@@ -247,7 +256,7 @@ class InputParser:
                 for actuator_config in dm_plc.get('actuators', []):
                     decision_makers[plc_name][actuator_config['name']] = {
                         'decision_maker': actuator_config.get('decision_maker'),
-                        'dependent': actuator_config.get('dependent', None)
+                        'dependents': actuator_config.get('dependents', [])
                     }
         
         # For each PLC, check if actuators with decision makers need synthetic controls
@@ -273,37 +282,34 @@ class InputParser:
                 if dm_value in ['rule', 'scada', 'open', 'closed']:
                     continue
                 
-                # This actuator needs a synthetic control
-                dependent = dm_info['dependent']
+                # This actuator needs synthetic TIME controls
+                dependents_list = dm_info['dependents']
                 
-                if dependent:
-                    # Create a synthetic ABOVE control with a very high threshold
-                    # This ensures it never actually triggers, but provides structure for custom algo
-                    synthetic_control = {
-                        "type": "above",
-                        "dependant": dependent,
-                        "value": 999999.0,  # Very high value that will never be reached
-                        "actuator": actuator_name,
-                        "action": "open"
-                    }
-                    self.logger.info(f"Created synthetic ABOVE control for actuator '{actuator_name}' "
-                                   f"in PLC '{plc_name}' with dependent '{dependent}' for custom algorithm")
-                else:
-                    # Create a synthetic TIME control at time 0 (executed at start)
-                    # This provides a control object for the custom algorithm to work with
-                    synthetic_control = {
-                        "type": "time",
-                        "value": 0,
-                        "actuator": actuator_name,
-                        "action": "open"
-                    }
-                    self.logger.info(f"Created synthetic TIME control for actuator '{actuator_name}' "
-                                   f"in PLC '{plc_name}' (no dependent) for custom algorithm")
+                # Create TWO TIME controls to span the simulation
+                # Control 1: At time 0 (start) - set to OPEN
+                synthetic_control_start = {
+                    "type": "time",
+                    "value": 0,
+                    "actuator": actuator_name,
+                    "action": "open"
+                }
                 
-                # Add the synthetic control to the PLC's controls
+                # Control 2: At last iteration (end) - set to CLOSED
+                synthetic_control_end = {
+                    "type": "time",
+                    "value": last_iteration,
+                    "actuator": actuator_name,
+                    "action": "closed"
+                }
+                
+                # Add both controls to the PLC's controls
                 if 'controls' not in plc:
                     plc['controls'] = []
-                plc['controls'].append(synthetic_control)
+                plc['controls'].append(synthetic_control_start)
+                plc['controls'].append(synthetic_control_end)
+                
+                self.logger.info(f"Created synthetic TIME controls for actuator '{actuator_name}' "
+                               f"in PLC '{plc_name}' (time 0 to {last_iteration}) with dependents {dependents_list} for custom algorithm")
 
     def generate_times(self):
         """
