@@ -1,0 +1,117 @@
+import argparse
+import os
+import signal
+import subprocess
+import sys
+from pathlib import Path
+
+from automatic_node import NodeControl
+from wacsim.py3_logger import get_logger
+
+empty_loc = '/dev/null'
+
+
+class PlcControl(NodeControl):
+    """
+    This class is started for a plc. It starts a tcpdump and a plc process.
+    """
+
+    PROCESS_TIMEOUT = 0.3
+    """Timeout between sending SIGINT, SIGTERM, and a SIGKILL"""
+
+    def __init__(self, intermediate_yaml, plc_index):
+        super(PlcControl, self).__init__(intermediate_yaml)
+
+        self.logger = get_logger(self.data['log_level'])
+
+        self.plc_index = plc_index
+        self.output_path = Path(self.data["output_path"])
+        self.process_tcp_dump = None
+        self.plc_process = None
+        self.this_plc_data = self.data["plcs"][self.plc_index]
+
+    def terminate_process(self, process):
+        if process.poll() is None:
+            process.send_signal(signal.SIGINT)
+        try:
+            process.wait(self.PROCESS_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            if process.poll() is None:
+                process.terminate()
+            if process.poll() is None:
+                process.kill()
+
+    def terminate(self):
+        """
+        This function stops the tcp dump and the plc process.
+        """
+        self.logger.debug("Stopping tcpdump process on PLC.")
+        self.terminate_process(self.process_tcp_dump)
+        self.logger.debug("tcpdump process on PLC stopped.")
+
+        self.logger.debug("Stopping PLC.")
+        self.terminate_process(self.plc_process)
+        self.logger.debug("PLC stopped on automatic PLC.")
+
+    def main(self):
+        """
+        This function starts the tcp dump and plc process and then waits for the plc
+        process to finish.
+        """
+        self.process_tcp_dump = self.start_tcpdump_capture()
+
+        self.plc_process = self.start_plc()
+        while self.plc_process.poll() is None:
+            pass
+        self.terminate()
+
+    def start_tcpdump_capture(self):
+        """
+        Start a tcp dump.
+        """
+        pcap = self.output_path / (self.this_plc_data["interface"] + '.pcap')
+
+        # Output is not printed to console
+        no_output = open(empty_loc, 'w')
+        tcp_dump = subprocess.Popen(['tcpdump', '-i', self.this_plc_data["interface"], '-w',
+                                     str(pcap)], shell=False, stderr=no_output, stdout=no_output)
+        return tcp_dump
+
+    def start_plc(self):
+        """
+        Start a plc process.
+        """
+        generic_plc_path = Path(__file__).parent.absolute() / "generic_plc.py"
+
+        if self.data['log_level'] == 'debug':
+            err_put = sys.stderr
+            out_put = sys.stdout
+        else:
+            err_put = open(empty_loc, 'w')
+            out_put = open(empty_loc, 'w')
+        cmd = ["python3", str(generic_plc_path), str(self.intermediate_yaml), str(self.plc_index)]
+        plc_process = subprocess.Popen(cmd, shell=False, stderr=err_put, stdout=out_put)
+        return plc_process
+
+
+def is_valid_file(parser_instance, arg):
+    """
+    Verifies whether the intermediate yaml path is valid.
+    """
+    if not os.path.exists(arg):
+        parser_instance.error(arg + " does not exist.")
+    else:
+        return arg
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Start everything for a plc')
+    parser.add_argument(dest="intermediate_yaml",
+                        help="intermediate yaml file", metavar="FILE",
+                        type=lambda x: is_valid_file(parser, x))
+    parser.add_argument(dest="index", help="Index of PLC in intermediate yaml", type=int,
+                        metavar="N")
+
+    args = parser.parse_args()
+    plc_control = PlcControl(Path(args.intermediate_yaml), args.index)
+    plc_control.main()

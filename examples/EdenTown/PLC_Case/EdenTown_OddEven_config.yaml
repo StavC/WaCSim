@@ -1,0 +1,25 @@
+# EdenTown Configuration with Odd/Even Custom Algorithm Example
+# ===============================================================
+# This config demonstrates the NEW FEATURE: custom algorithms without INP controls
+#
+# What's different from the original EdenTown_config.yaml:
+# - Uses EdenTown_OddEven_decision_plc.yaml instead of EdenTown_decision_plc.yaml
+# - P1 and P2 are controlled by odd/even algorithms
+# - NO [CONTROLS] needed in INP file for P1 or P2
+# - The 'dependent' field in the decision_maker YAML handles sensor registration
+#
+# To run this example:
+#   wacsim examples/EdenTown/PLC_Case/EdenTown_OddEven_config.yaml
+
+inp_file: EdenTown.inp
+output_path: OddEven_Demo_Output
+iterations: 400
+network_topology_type: complex
+plcs: !include EdenTown_plc.yaml
+demand: pdd
+log_level: info
+demand_patterns: demands_EdenTown.csv
+mode: plccontrol
+decision_maker_per_plc: !include EdenTown_OddEven_decision_plc.yaml
+# No attacks for this demo - just showing the new feature
+

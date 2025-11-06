@@ -1,0 +1,14 @@
+- name: PLC1
+  actuators:
+    - name: PU1
+      decision_maker: 'rule'
+
+- name: PLC3
+  actuators:
+    - name: PU5
+      decision_maker: 'scada'
+
+- name: PLC5
+  actuators:
+    - name: PU10
+      decision_maker: 'rule'

@@ -1,0 +1,39 @@
+# Example: Custom Algorithm Without INP File Controls
+# This example demonstrates the new feature where you can use custom algorithms
+# without needing to define control rules in the INP file's [CONTROLS] section.
+
+- name: PLC1
+  actuators:
+    # Example 1: Custom algorithm with a dependent sensor
+    # WaCSim will automatically:
+    #   - Create a synthetic control for P1
+    #   - Register T1 as a dependent sensor
+    #   - Execute the custom algorithm at every iteration
+    - name: P1
+      decision_maker: custom_algos/pump_controller.py
+      dependent: T1  # Tank sensor that the algorithm reads
+
+    # Example 2: Custom algorithm without a dependent sensor
+    # Useful for time-based logic or algorithms that access multiple sensors
+    - name: P2
+      decision_maker: custom_algos/time_based_pump.py
+      # No dependent field - the algorithm might use time or multiple sensors
+
+- name: PLC2
+  actuators:
+    # Example 3: Using built-in control modes
+    # These don't require custom algorithms
+    - name: P3
+      decision_maker: rule  # Use the INP file control rules
+    
+    - name: P4
+      decision_maker: scada  # Follow SCADA commands
+    
+    - name: P5
+      decision_maker: open  # Always keep open
+
+# Backward Compatibility Note:
+# If your INP file already has [CONTROLS] rules for P1, P2, etc.,
+# those rules will be used by default (when decision_maker is 'rule').
+# The custom algorithm can then override the rule-based logic if needed.
+

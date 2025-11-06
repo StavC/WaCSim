@@ -1,0 +1,12 @@
+inp_file: EdenTownScada.inp
+output_path: DoS_With_Guard2
+iterations: 500
+network_topology_type: complex
+plcs: !include EdenTownScada_plc.yaml
+demand: pdd
+log_level: debug
+demand_patterns: demands_EdenTownScada.csv
+mode: scadacontrol
+decision_maker_per_scadacommand: !include EdenTown_decision_scada.yaml
+#attacks: !include Plc2_Dos.yaml
+attacks: !include Plc3AndPlc2_Dos.yaml

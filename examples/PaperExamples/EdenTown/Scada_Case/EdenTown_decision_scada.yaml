@@ -1,0 +1,8 @@
+- name: PLC1
+  actuators:
+    - name: P2
+      decision_maker: rule
+- name: PLC4
+  actuators:
+    - name: P1
+      decision_maker: examples/EdenTown/Scada_Case/ScadaAlgos/Scada_P1_Algo.py

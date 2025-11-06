@@ -1,0 +1,49 @@
+attacks:
+  network_attacks:
+  - direction: source
+    name: plc3AttackerUnit
+    target: PLC3
+    trigger:
+      end: 395
+      start: 295
+      type: time
+    type: simple_dos
+  - direction: source
+    name: plc2AttackerUnit
+    target: PLC2
+    trigger:
+      end: 395
+      start: 295
+      type: time
+    type: simple_dos
+demand: pdd
+demand_patterns: demands_EdenTownScada.csv
+inp_file: EdenTownScada.inp
+iterations: 500
+log_level: debug
+mode: scadacontrol
+network_topology_type: complex
+output_path: DoS_No_Guard2
+plcs:
+- actuators:
+  - P2
+  name: PLC1
+- name: PLC2
+  sensors:
+  - T1
+- name: PLC3
+  sensors:
+  - T2
+- actuators:
+  - P1
+  name: PLC4
+- name: JPLC1_2
+  sensors:
+  - J1
+  - J2
+- name: VPLC13
+  sensors:
+  - V13F
+- name: VPLC24
+  sensors:
+  - V24F
