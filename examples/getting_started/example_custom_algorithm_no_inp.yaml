@@ -6,7 +6,7 @@
   actuators:
     # Example 1: Custom algorithm with dependent sensors (REQUIRED LIST)
     # WaCSim will automatically:
-    #   - Create synthetic TIME controls for P1 (time 0 and end)
+    #   - Create synthetic TIME control at time 0 for P1
     #   - Register all sensors in the dependents list
     #   - Execute the custom algorithm at every iteration
     - name: P1

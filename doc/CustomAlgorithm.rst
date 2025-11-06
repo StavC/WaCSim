@@ -91,8 +91,8 @@ This ensures:
 
 - All sensors in the ``dependents`` list are properly registered
 - Sensor values are available in the algorithm's input dictionaries
-- TWO synthetic TIME controls are created (at time 0 and at simulation end)
-- The custom algorithm executes at every iteration and overrides the time controls
+- ONE synthetic TIME control is created at time 0 to get the actuator into the control loop
+- The custom algorithm executes at every iteration and decides the actuator output
 
 **Backward Compatibility:**
 

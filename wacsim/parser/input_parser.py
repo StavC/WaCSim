@@ -216,22 +216,15 @@ class InputParser:
 
     def generate_synthetic_controls_for_custom_algorithms(self):
         """
-        Creates synthetic TIME controls for actuators that have custom decision makers
+        Creates synthetic TIME control for actuators that have custom decision makers
         but no control rules defined in the INP file.
         
         These synthetic controls:
-        - Create TWO TIME controls: one at time 0 (start) and one at last iteration (end)
-        - This ensures the actuator is in the control loop throughout the simulation
-        - The custom algorithm will execute and override these controls at every iteration
+        - Create ONE TIME control at time 0 (start) - set to OPEN
+        - This gets the actuator into the control loop
+        - The custom algorithm executes at every iteration and decides the output
         - Dependents list is required and all sensors are registered
         """
-        # Get simulation duration from WNTR network
-        duration = self.wn.options.time.duration
-        hydraulic_timestep = self.wn.options.time.hydraulic_timestep
-        
-        # Calculate last iteration time
-        last_iteration = int(duration)
-        
         # Collect all decision makers from both PLC and SCADA modes
         decision_makers = {}
         
@@ -282,34 +275,25 @@ class InputParser:
                 if dm_value in ['rule', 'scada', 'open', 'closed']:
                     continue
                 
-                # This actuator needs synthetic TIME controls
+                # This actuator needs a synthetic TIME control
                 dependents_list = dm_info['dependents']
                 
-                # Create TWO TIME controls to span the simulation
-                # Control 1: At time 0 (start) - set to OPEN
-                synthetic_control_start = {
+                # Create ONE TIME control at time 0 to get actuator into control loop
+                # Custom algorithm will decide output at every iteration
+                synthetic_control = {
                     "type": "time",
                     "value": 0,
                     "actuator": actuator_name,
                     "action": "open"
                 }
                 
-                # Control 2: At last iteration (end) - set to CLOSED
-                synthetic_control_end = {
-                    "type": "time",
-                    "value": last_iteration,
-                    "actuator": actuator_name,
-                    "action": "closed"
-                }
-                
-                # Add both controls to the PLC's controls
+                # Add control to the PLC's controls
                 if 'controls' not in plc:
                     plc['controls'] = []
-                plc['controls'].append(synthetic_control_start)
-                plc['controls'].append(synthetic_control_end)
+                plc['controls'].append(synthetic_control)
                 
-                self.logger.info(f"Created synthetic TIME controls for actuator '{actuator_name}' "
-                               f"in PLC '{plc_name}' (time 0 to {last_iteration}) with dependents {dependents_list} for custom algorithm")
+                self.logger.info(f"Created synthetic TIME control at time 0 for actuator '{actuator_name}' "
+                               f"in PLC '{plc_name}' with dependents {dependents_list} for custom algorithm")
 
     def generate_times(self):
         """
