@@ -30,10 +30,16 @@ YAML Configuration:
 
 import json
 import os
+import stat
 
 # State file path - in same directory as this script
-STATE_FILE = os.path.join(os.path.dirname(__file__), "P2_state.json")
+STATE_DIR = os.path.dirname(__file__)
+STATE_FILE = os.path.join(STATE_DIR, "P2_state.json")
 ITERATIONS_PER_STATE = 5
+
+# Ensure directory has full permissions
+if os.path.exists(STATE_DIR):
+    os.chmod(STATE_DIR, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
 
 def AlgoRun(plc_cache, plc_dict, scada_cache=None):
     """
@@ -83,5 +89,8 @@ def AlgoRun(plc_cache, plc_dict, scada_cache=None):
     
     with open(STATE_FILE, 'w') as f:
         json.dump(state, f, indent=2)
+    
+    # Set full permissions (read/write for all users) to avoid permission issues
+    os.chmod(STATE_FILE, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH | stat.S_IWOTH)
     
     return action
