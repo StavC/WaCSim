@@ -1,6 +1,6 @@
-; Filename: /home/vboxuser/Desktop/WaCSim/examples/EdenTown/Scada_Case/EdenTownScada.inp
+; Filename: /home/vboxuser/Desktop/WacsimCur/WaCSim/examples/EdenTown/OddEven_CustomAlgo_Example/EdenTown.inp
 ; WNTR: 1.3.2
-; Created: 2025-08-02 13:19:42
+; Created: 2025-11-06 20:27:29
 [TITLE]
 Anytown master file for rl-wds
 
@@ -11,8 +11,9 @@ Anytown master file for rl-wds
  J3                             15.24      600.565002 PAT1                       ;
  J4                             15.24      500.130005 PAT1                       ;
  J5                             15.24             850 PAT1                       ;
+ J5S                           66.535               0 PAT1                       ;
  J1S                            15.24               0 PAT1                       ;
- J2S                            15.24               0 PAT1                       ;
+ J4S                            15.24               0 PAT1                       ;
 
 [RESERVOIRS]
 ;ID                                   Head                  Pattern
@@ -28,11 +29,11 @@ Anytown master file for rl-wds
 ;ID                   Node1                Node2                              Length             Diameter            Roughness           Minor Loss               Status
  PIPE1                J1                   J2                            2743.2           304.8              70               0                 Open   ;
  PIPE3                J1S                  J3                            1828.8             254             120               0                 Open   ;
- PIPE2                J2S                  J4                            1828.8             254              70               0                 Open   ;
+ PIPE2                J2                   J4                            1828.8             254              70               0                 Open   ;
  PIPE4                J3                   J4                            1828.8             254              70               0                 Open   ;
  PIPE5                J3                   J5                             30.48           304.8             120               0                 Open   ;
- PIPE6                J4                   T2                            0.3048           304.8             120               0                 Open   ;
- PIPE7                T1                   J5                              1000           304.8             120               0                 Open   ;
+ PIPE6                J4S                  T2                            0.3048           304.8             120               0                 Open   ;
+ PIPE7                T1                   J5S                             1000           304.8             120               0                 Open   ;
 
 [PUMPS]
 ;ID                   Node1                Node2                Properties          
@@ -41,8 +42,9 @@ Anytown master file for rl-wds
 
 [VALVES]
 ;ID                   Node1                Node2                            Diameter Type              Setting           Minor Loss
- V13                  J1                   J1S                              254 PRV                0               0   ;
- V24                  J2                   J2S                              254 PRV                0               0   ;
+ V5                   J5                   J5S                            304.8 PRV                0               0   ;
+ V1                   J1                   J1S                              254 PRV                0               0   ;
+ V4                   J4                   J4S                            304.8 PRV                0               0   ;
 
 [TAGS]
 ;type      name       tag       
@@ -52,6 +54,9 @@ Anytown master file for rl-wds
 
 [STATUS]
 ;ID        Setting   
+V5         Open      
+V1         Open      
+V4         Open      
 
 [PATTERNS]
 ;ID        Multipliers
@@ -163,7 +168,7 @@ DEMAND CHARGE          0.0000
 ;Tank ID             Model Fraction
 
 [TIMES]
-DURATION             41:40:00
+DURATION             33:20:00
 HYDRAULIC TIMESTEP   00:05:00
 QUALITY TIMESTEP     00:05:00
 PATTERN TIMESTEP     01:00:00
@@ -206,8 +211,9 @@ J2               6450.570000000       4424.640000000
 J3               6466.770000000       5769.850000000
 J4               5332.250000000       5332.250000000
 J5               6094.000000000       6499.190000000
-J1S              7285.905000000       5781.610000000
-J2S              6339.440000000       4619.371000000
+J5S              5809.812000000       6840.866000000
+J1S              7114.266000000       5894.401000000
+J4S              4922.195000000       5619.779000000
 R2               7320.233000000       4305.517000000
 R1               7962.652000000       5752.186000000
 T1               6094.000000000       7200.190000000

@@ -1,0 +1,52 @@
+decision_maker_per_plc:
+- actuators:
+  - decision_maker: examples/EdenTown/OddEven_CustomAlgo_Example/CustomAlgos/OddEven_P2_Algo.py
+    dependent: T2
+    name: P2
+  name: PLC1
+- actuators:
+  - decision_maker: examples/EdenTown/PLC_Case/PLCAlgos/V5_Algo.py
+    name: V5
+  name: PLC2
+- actuators:
+  - decision_maker: examples/EdenTown/PLC_Case/PLCAlgos/V4_Algo.py
+    name: V4
+  name: PLC3
+- actuators:
+  - decision_maker: examples/EdenTown/OddEven_CustomAlgo_Example/CustomAlgos/OddEven_P1_Algo.py
+    dependent: T1
+    name: P1
+  name: PLC4
+demand: pdd
+demand_patterns: ../PLC_Case/demands_EdenTown.csv
+inp_file: EdenTown.inp
+iterations: 400
+log_level: debug
+mode: plccontrol
+network_topology_type: complex
+output_path: OddEven_Demo_Output
+plcs:
+- actuators:
+  - P2
+  name: PLC1
+- actuators:
+  - V5
+  name: PLC2
+  sensors:
+  - T1
+  - V5F
+  - J5
+- actuators:
+  - V4
+  name: PLC3
+  sensors:
+  - T2
+  - V4F
+  - J4
+- actuators:
+  - P1
+  name: PLC4
+  sensors:
+  - J1
+  - P1F
+  - V1F
