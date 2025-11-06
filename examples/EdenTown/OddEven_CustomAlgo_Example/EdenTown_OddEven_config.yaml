@@ -11,14 +11,14 @@
 # To run this example:
 #   wacsim examples/EdenTown/PLC_Case/EdenTown_OddEven_config.yaml
 
-inp_file: EdenTown.inp
+inp_file: ../PLC_Case/EdenTown.inp
 output_path: OddEven_Demo_Output
 iterations: 400
 network_topology_type: complex
-plcs: !include EdenTown_plc.yaml
+plcs: !include ../PLC_Case/EdenTown_plc.yaml
 demand: pdd
 log_level: info
-demand_patterns: demands_EdenTown.csv
+demand_patterns: ../PLC_Case/demands_EdenTown.csv
 mode: plccontrol
 decision_maker_per_plc: !include EdenTown_OddEven_decision_plc.yaml
 # No attacks for this demo - just showing the new feature

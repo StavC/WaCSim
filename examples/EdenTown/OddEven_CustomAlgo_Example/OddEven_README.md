@@ -22,8 +22,8 @@ This configuration controls two pumps (P1 and P2) based on whether their associa
 
 1. **EdenTown_OddEven_config.yaml** - Main configuration file
 2. **EdenTown_OddEven_decision_plc.yaml** - Decision maker configuration with `dependent` fields
-3. **PLCAlgos/OddEven_P1_Algo.py** - Custom algorithm for pump P1
-4. **PLCAlgos/OddEven_P2_Algo.py** - Custom algorithm for pump P2
+3. **CustomAlgos/OddEven_P1_Algo.py** - Custom algorithm for pump P1
+4. **CustomAlgos/OddEven_P2_Algo.py** - Custom algorithm for pump P2
 
 ## The New Feature in Action
 
@@ -33,7 +33,7 @@ This configuration controls two pumps (P1 and P2) based on whether their associa
 - name: PLC4
   actuators:
     - name: P1
-      decision_maker: examples/EdenTown/PLC_Case/PLCAlgos/OddEven_P1_Algo.py
+      decision_maker: examples/EdenTown/OddEven_CustomAlgo_Example/CustomAlgos/OddEven_P1_Algo.py
       dependent: T1  # NEW: Specifies the dependent sensor
 ```
 
@@ -67,7 +67,7 @@ def AlgoRun(plc_cache, plc_dict, scada_cache=None):
 
 ```bash
 cd /Users/stavcohn/Desktop/Personal/wcasim/WaCSim-master
-wacsim examples/EdenTown/PLC_Case/EdenTown_OddEven_config.yaml
+wacsim examples/EdenTown/OddEven_CustomAlgo_Example/EdenTown_OddEven_config.yaml
 ```
 
 ## Expected Behavior

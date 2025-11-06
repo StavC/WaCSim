@@ -1,32 +1,29 @@
 #!/usr/bin/env python3
 """
-Odd/Even Tank Level Control Algorithm
-======================================
+Odd/Even Tank Level Control Algorithm for P2
+=============================================
 
 This algorithm demonstrates the NEW FEATURE where custom algorithms 
 can be used WITHOUT defining controls in the INP file's [CONTROLS] section.
 
 Control Logic:
-- Reads tank T1 level (via the 'dependent' field in YAML)
-- If tank level (as integer) is EVEN: Turn pump P1 ON
-- If tank level (as integer) is ODD: Turn pump P1 OFF
+- Reads tank T2 level (via the 'dependent' field in YAML)
+- If tank level (as integer) is EVEN: Turn pump P2 ON
+- If tank level (as integer) is ODD: Turn pump P2 OFF
 
-This is a simple demonstration to show that:
-1. No INP control is needed for P1
-2. The dependent sensor (T1) is automatically registered
-3. Custom algorithm executes at every iteration
+This shows the new feature working with a different pump and tank.
 
 YAML Configuration:
-    - name: PLC4
+    - name: PLC1
       actuators:
-        - name: P1
-          decision_maker: examples/EdenTown/PLC_Case/PLCAlgos/OddEven_P1_Algo.py
-          dependent: T1
+        - name: P2
+          decision_maker: examples/EdenTown/OddEven_CustomAlgo_Example/CustomAlgos/OddEven_P2_Algo.py
+          dependent: T2
 """
 
 def AlgoRun(plc_cache, plc_dict, scada_cache=None):
     """
-    Control pump P1 based on whether tank T1 level is odd or even.
+    Control pump P2 based on whether tank T2 level is odd or even.
     
     Args:
         plc_cache: Dictionary of values received from other PLCs
@@ -37,9 +34,9 @@ def AlgoRun(plc_cache, plc_dict, scada_cache=None):
         str: "open" if tank level is even, "closed" if odd
     """
     
-    # Get tank T1 level - this sensor is automatically available
-    # because we specified it as 'dependent' in the YAML config
-    tank_level = plc_dict.get(('T1', 1), 0.0)
+    # Get tank T2 level from network cache (T2 is connected to PLC2, not PLC1)
+    # The system automatically makes this available via plc_cache
+    tank_level = plc_cache.get('T2', 0.0)
     
     # Convert to integer to check odd/even
     tank_level_int = int(tank_level)
