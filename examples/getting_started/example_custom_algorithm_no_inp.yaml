@@ -4,14 +4,14 @@
 
 - name: PLC1
   actuators:
-    # Example 1: Custom algorithm with dependent sensors (REQUIRED LIST)
+    # Example 1: Custom algorithm with dependent sensors (OPTIONAL)
     # WaCSim will automatically:
     #   - Create synthetic TIME control at time 0 for P1
     #   - Register all sensors in the dependents list
     #   - Execute the custom algorithm at every iteration
     - name: P1
       decision_maker: custom_algos/pump_controller.py
-      dependents: [T1]  # List of tank/sensor names the algorithm reads (REQUIRED)
+      dependents: [T1]  # List of tank/sensor names the algorithm reads (optional)
 
     # Example 2: Custom algorithm with multiple dependent sensors
     # You can specify multiple sensors the algorithm needs
@@ -21,15 +21,21 @@
 
 - name: PLC2
   actuators:
-    # Example 3: Using built-in control modes
-    # These don't require custom algorithms
+    # Example 3: Custom algorithm WITHOUT dependent sensors
+    # Useful for pure time-based or stateful algorithms
     - name: P3
+      decision_maker: custom_algos/stateless_algo.py
+      # No dependents field - algorithm doesn't need sensors
+    
+    # Example 4: Using built-in control modes
+    # These don't require custom algorithms
+    - name: P4
       decision_maker: rule  # Use the INP file control rules
     
-    - name: P4
+    - name: P5
       decision_maker: scada  # Follow SCADA commands
     
-    - name: P5
+    - name: P6
       decision_maker: open  # Always keep open
 
 # Backward Compatibility Note:

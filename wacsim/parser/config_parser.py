@@ -636,7 +636,7 @@ class SchemaParser:
                     SchemaParser.string_pattern
                 ),
                 'decision_maker': object,
-                'dependents': [And(
+                Optional('dependents', default=[]): [And(
                     str,
                     SchemaParser.string_pattern
                 )]
@@ -656,7 +656,7 @@ class SchemaParser:
                     SchemaParser.string_pattern
                 ),
                 'decision_maker': object,
-                'dependents': [And(
+                Optional('dependents', default=[]): [And(
                     str,
                     SchemaParser.string_pattern
                 )]
