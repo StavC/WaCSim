@@ -8,6 +8,7 @@
   sensors:
     - T2      # Tank T2 level (for P2 speed control)
     - J4      # Junction pressure
+    - P2F     # Pump P2 flow sensor
   actuators:
     - P2      # Pump P2 controlled by this PLC
 
@@ -23,6 +24,6 @@
   sensors:
     - T1      # Tank T1 level (for P1 speed control)
     - J1      # Junction pressure
+    - P1F     # Pump P1 flow sensor
   actuators:
     - P1      # Pump P1 controlled by this PLC
-
