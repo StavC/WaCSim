@@ -17,7 +17,7 @@
 # To run this example:
 #   wacsim examples/EdenTown/PumpSpeed_CustomAlgo_Example/EdenTown_PumpSpeed_config.yaml
 
-inp_file: ../EdenTownBasic.inp
+inp_file: EdenTown_PumpSpeed.inp
 output_path: PumpSpeed_Demo_Output
 iterations: 200
 network_topology_type: complex
