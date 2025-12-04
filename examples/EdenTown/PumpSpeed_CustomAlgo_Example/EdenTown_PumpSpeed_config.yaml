@@ -21,7 +21,7 @@ inp_file: EdenTown_PumpSpeed.inp
 output_path: PumpSpeed_Demo_Output
 iterations: 200
 network_topology_type: complex
-plcs: !include ../PLC_Case/EdenTown_plc.yaml
+plcs: !include EdenTown_PumpSpeed_plc.yaml
 demand: pdd
 log_level: debug
 demand_patterns: ../PLC_Case/demands_EdenTown.csv
