@@ -61,10 +61,10 @@ Modified for pump speed control demonstration
 ;==============================================================================
 ; This curve is designed for variable speed operation at LOW speeds:
 ; - Very high shutoff head (300m) allows operation even at 50% speed
-; - At 50% speed: 300 × 0.25 = 75m (still > 63.5m system head!)
+; - At 50% speed: 300 x 0.25 = 75m (still > 63.5m system head!)
 ; - Smooth, realistic curve shape
 ;
-; At different speeds, the curve scales (head ~ speed²):
+; At different speeds, the curve scales (head ~ speed^2):
 ;   Speed 1.5 (150%): Shutoff=675m, can deliver huge flow
 ;   Speed 1.2 (120%): Shutoff=432m, excellent performance
 ;   Speed 1.0 (100%): Shutoff=300m, rated operation
@@ -73,7 +73,7 @@ Modified for pump speed control demonstration
 ;   Speed 0.4 (40%):  Shutoff=48m, marginal (< 63.5m)
 ;
 ; System head requirement: ~63.5m (tank elevation - reservoir head)
-; Minimum speed for flow: ~0.46 (300 × 0.46² = 63.5m)
+; Minimum speed for flow: ~0.46 (300 x 0.46^2 = 63.5m)
 ;
 ;------------------------------------------------------------------------------
  H1              	0.0000      	300.000     	; Shutoff head - 300m at zero flow
