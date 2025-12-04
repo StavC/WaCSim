@@ -84,7 +84,7 @@ class PhysicalPlant:
         list_header = ['iteration', 'timestamp']
         list_header.extend(self.create_node_header(self.tank_list))
         list_header.extend(self.create_node_header(self.junction_list))
-        list_header.extend(self.create_link_header(self.pump_list))
+        list_header.extend(self.create_link_header(self.pump_list, include_speed=True))  # Include pump speed
         list_header.extend(self.create_link_header(self.valve_list))
 
         list_header.extend(self.create_attack_header())
@@ -303,11 +303,13 @@ class PhysicalPlant:
         return result
 
     @staticmethod
-    def create_link_header(a_list):
+    def create_link_header(a_list, include_speed=False):
         result = []
         for link in a_list:
             result.append(link + "_FLOW")
             result.append(link + "_STATUS")
+            if include_speed:
+                result.append(link + "_SPEED")
         return result
 
     def create_attack_header(self):
@@ -338,10 +340,12 @@ class PhysicalPlant:
             idx = en.getnodeindex(ph=self.proj, id=junction)
             self.values_list.extend([en.getnodevalue(ph=self.proj, index=idx, property=en.PRESSURE)])
         for pump in self.pump_list:
-            self.values_list.extend([self.wn.get_link(pump).flow])
             idx = en.getlinkindex(ph=self.proj, id=pump)
-            self.values_list.extend([en.getlinkvalue(ph=self.proj, index=idx, property=en.FLOW)])
-            self.values_list.extend([en.getlinkvalue(ph=self.proj, index=idx, property=en.STATUS)])
+            self.values_list.extend([
+                en.getlinkvalue(ph=self.proj, index=idx, property=en.FLOW),
+                en.getlinkvalue(ph=self.proj, index=idx, property=en.STATUS),
+                en.getlinkvalue(ph=self.proj, index=idx, property=en.SETTING)  # Pump speed
+            ])
 
         self.extend_attacks()
 
@@ -382,7 +386,10 @@ class PhysicalPlant:
                                             either shut down (due to insufficient head) or operate beyond the maximum rated flow".format(x=self.master_time))
             except Exception:
                 pass
-            self.values_list.extend([results[pump]['flow'], results[pump]['status']])
+            # Get pump speed/setting from EPANET
+            idx = en.getlinkindex(ph=self.proj, id=pump)
+            pump_speed = en.getlinkvalue(ph=self.proj, index=idx, property=en.SETTING)
+            self.values_list.extend([results[pump]['flow'], results[pump]['status'], pump_speed])
             
     def extend_valves(self, results=None):
         # Get valves flows and status

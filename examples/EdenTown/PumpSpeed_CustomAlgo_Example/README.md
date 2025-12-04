@@ -1,50 +1,45 @@
-# Pump Speed Control Example 🚀
+# Intelligent Pump Speed Control Example 🚀
 
 ## Overview
 
-This example demonstrates **variable speed pump control** in WaCSim. Instead of simple on/off control, the custom algorithms return numeric speed values (0.0 to 2.0) that are passed directly to EPANET's pump speed multiplier.
+This example demonstrates **intelligent variable speed pump control** in WaCSim. Instead of simple on/off control, the pump speed automatically adjusts based on tank water level - providing more realistic and energy-efficient operation.
 
 ## What's Special
 
-- **Variable Speed**: Pumps can run at any speed from 0% to 200%
-- **Numeric Returns**: Custom algorithms return `float` values, not just "open"/"closed"
-- **EPANET Integration**: Speed values are applied via EPANET's `SETTING` property
-- **Cycling Pattern**: Speed increments by 0.1 every iteration, cycling back to 0.0
+- **Tank-Level Dependent**: Pump speed adjusts automatically based on tank level
+- **Energy Efficient**: Slower pump speeds when tank is filling up
+- **Realistic Control**: More like real-world variable frequency drives (VFDs)
+- **Numeric Returns**: Custom algorithms return `float` values (0.0 to 2.0)
 
-## Speed Values
+## Speed Logic
 
-| Value | Meaning | Effect |
-|-------|---------|--------|
-| `0.0` | Pump OFF | No flow |
-| `0.5` | 50% speed | Half flow |
-| `1.0` | 100% speed | Normal flow |
-| `1.5` | 150% speed | 50% more flow |
-| `2.0` | 200% speed | Maximum flow |
+The pump speed is calculated based on the monitored tank level:
 
-## Algorithm Behavior
+| Tank Level | Speed | Meaning |
+|-----------|-------|---------|
+| `< 2.0m` | `1.5` (150%) | URGENT - fill fast! |
+| `< 4.0m` | `1.2` (120%) | Tank low - pump faster |
+| `< 6.0m` | `1.0` (100%) | Normal operation |
+| `< 8.0m` | `0.5` (50%) | Tank filling - slow down |
+| `>= 8.0m` | `0.0` (OFF) | Tank full - save energy |
 
-The custom algorithms cycle through speed values:
+## Benefits Over On/Off Control
 
-```
-Iteration 1:  Speed = 0.0 (OFF)
-Iteration 2:  Speed = 0.1
-Iteration 3:  Speed = 0.2
-...
-Iteration 15: Speed = 1.4
-Iteration 16: Speed = 1.5 (Maximum for this demo)
-Iteration 17: Speed = 0.0 (Reset - cycle begins again)
-```
+1. **Energy Savings**: Running at 50% speed uses ~12.5% of full-speed energy (power ∝ speed³)
+2. **Reduced Water Hammer**: Gradual speed changes reduce pressure surges
+3. **Extended Equipment Life**: Fewer start/stop cycles reduce mechanical wear
+4. **Better Level Control**: More precise tank level maintenance
 
 ## Files
 
 ```
 PumpSpeed_CustomAlgo_Example/
 ├── EdenTown_PumpSpeed_config.yaml      # Main config
-├── EdenTown_PumpSpeed_decision_plc.yaml # Decision maker config
+├── EdenTown_PumpSpeed_decision_plc.yaml # Decision maker config with dependents
 ├── README.md                            # This file
 └── CustomAlgos/
-    ├── PumpSpeed_P1_Algo.py            # Speed control for P1
-    └── PumpSpeed_P2_Algo.py            # Speed control for P2
+    ├── PumpSpeed_P1_Algo.py            # P1 speed based on T1 level
+    └── PumpSpeed_P2_Algo.py            # P2 speed based on T2 level
 ```
 
 ## How to Run
@@ -54,68 +49,90 @@ cd /path/to/WaCSim
 wacsim examples/EdenTown/PumpSpeed_CustomAlgo_Example/EdenTown_PumpSpeed_config.yaml
 ```
 
+## CSV Output
+
+The results CSV now includes pump speed in addition to flow and status:
+
+| Column | Description |
+|--------|-------------|
+| `P1_FLOW` | Pump P1 flow rate |
+| `P1_STATUS` | Pump P1 on/off status |
+| `P1_SPEED` | **NEW** Pump P1 speed setting (0.0-2.0) |
+
+## Configuration: Dependents
+
+The `dependents` field in the YAML config registers which sensors the custom algorithm needs:
+
+```yaml
+- name: PLC4
+  actuators:
+    - name: P1
+      decision_maker: .../PumpSpeed_P1_Algo.py
+      dependents: [T1]  # Tank T1 level needed for speed calculation
+```
+
+## Algorithm Example
+
+```python
+def AlgoRun(plc_cache, plc_dict, scada_cache=None, control=None):
+    # Get tank level
+    tank_level = plc_dict.get(('T1', 1), 3.0)
+    
+    # Calculate speed based on level
+    if tank_level < 2.0:
+        return 1.5  # 150% - urgent fill
+    elif tank_level < 4.0:
+        return 1.2  # 120% - fill faster
+    elif tank_level < 6.0:
+        return 1.0  # 100% - normal
+    elif tank_level < 8.0:
+        return 0.5  # 50% - slow down
+    else:
+        return 0.0  # OFF - tank full
+```
+
 ## State Files
 
-The algorithms maintain state in JSON files:
+The algorithms track state for debugging:
 - `CustomAlgos/P1_speed_state.json`
 - `CustomAlgos/P2_speed_state.json`
 
-These files track the current speed for each pump. Delete them to reset the speed to 0.0.
-
-## Implementation Details
-
-### Custom Algorithm Return Value
-
-The key difference from binary control is the return value:
-
-```python
-# Binary control (old way)
-return "open"    # Pump ON at full speed
-return "closed"  # Pump OFF
-
-# Speed control (new way)
-return 0.0   # Pump OFF
-return 0.5   # Pump at 50% speed
-return 1.0   # Pump at 100% speed
-return 1.5   # Pump at 150% speed
+Example state file content:
+```json
+{
+  "tank_level": 4.5,
+  "speed": 1.0,
+  "iteration_count": 42
+}
 ```
 
-### EPANET Integration
+## Pump Curve Considerations
 
-WaCSim automatically detects numeric return values and uses EPANET's `SETTING` property instead of `STATUS`:
+⚠️ **Important**: When using variable speed pumps, the pump curve matters!
 
-```python
-# In physical_process.py
-if not math.isclose(control['value'], 1) and not math.isclose(control['value'], 0):
-    # Numeric value - use SETTING for pump speed
-    en.setlinkvalue(ph=self.proj, index=idx, property=en.SETTING, value=control['value'])
-else:
-    # Binary value - use STATUS for on/off
-    en.setlinkvalue(ph=self.proj, index=idx, property=en.STATUS, value=control['value'])
-```
+The H1 curve in EdenTownBasic.inp:
+- At 0% speed: No flow, no head
+- At 50% speed: Head scales by (0.5)² = 25% of rated head
+- At 150% speed: Head scales by (1.5)² = 225% of rated head
 
-## Expected Results
-
-Watch the output CSV file to see:
-1. **P1F** and **P2F** (pump flow) varying with speed
-2. Flow roughly proportional to speed: 150% speed ≈ 150% flow
-3. Tank levels fluctuating based on pump output
+Make sure the pump can overcome system head at all operating speeds. A pump at 50% speed delivers much less head than at full speed, which may not overcome static head differences in the system.
 
 ## Troubleshooting
 
-### Speed Not Changing?
-1. Delete the state JSON files and re-run
-2. Check log output for custom algorithm execution
-3. Verify the decision_maker path in YAML is correct
+### Pump Flow is Zero at Low Speeds?
+The pump may not overcome system head at reduced speed. Either:
+1. Increase minimum speed threshold
+2. Use a pump curve with higher shutoff head
+3. Reduce static head differences in the network
 
-### Pump Always OFF?
-1. Ensure `physical_process.py` uses `float()` instead of `int()` for reading values
-2. Check that `control.py` passes through numeric values (not converting to "closed")
+### Tank Level Not Found?
+1. Check the `dependents` list includes the tank sensor
+2. Verify the tank sensor is assigned to a PLC in `EdenTown_plc.yaml`
+3. Check the sensor name matches exactly (case-sensitive)
 
 ## Backward Compatibility
 
 This feature is fully backward compatible:
 - `"open"` and `"closed"` strings still work
-- Existing examples continue to function
+- Existing on/off examples continue to function
 - Speed control is opt-in via numeric return values
-
