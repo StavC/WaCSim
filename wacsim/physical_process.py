@@ -409,9 +409,10 @@ class PhysicalPlant:
         for control in self.control_list:
             rows_1 = c.execute('SELECT value FROM plant WHERE name = ?', (control['name'],)).fetchone()
             conn.commit()
-            new_status = int(rows_1[0])
+            # Use float() instead of int() to preserve decimal values for pump speed control
+            new_status = float(rows_1[0])
 
-            control['value'] = float(new_status)
+            control['value'] = new_status
             idx = en.getlinkindex(ph=self.proj, id=control['name'])
             if not math.isclose(control['value'], 1) and not math.isclose(control['value'], 0):
                 en.setlinkvalue(ph=self.proj, index=idx, property=en.SETTING, value=control['value'])

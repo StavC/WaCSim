@@ -471,10 +471,14 @@ class GenericScada(BasePLC):
                 # Apply the SCADA decisions by writing them to the shared database and broadcasting to PLCs
                 for action in ControlsActions:
                     # Convert symbolic actuator action into numeric values
+                    # action[1] can be 'closed', 'open', or a numeric value for pump speed (0.0-2.0)
                     if action[1] == 'closed':
                         self.set((f'ScadaCommand_{action[0]}', 1), 0)
                     elif action[1] == 'open':
                         self.set((f'ScadaCommand_{action[0]}', 1), 1)
+                    else:
+                        # Numeric value for pump speed control (0.0-2.0)
+                        self.set((f'ScadaCommand_{action[0]}', 1), action[1])
 
                     # Store the issued command in the cache and send it to the PLC
                     UpdatedValue = self.get((f'ScadaCommand_{action[0]}', 1))

@@ -48,11 +48,16 @@ class BelowControl(Control):
             #    generic_plc.intermediate_plc["name"] + " applied " + str(self) +
             #    " because dep_val " + str(dep_val) + ".")
     def applyScadaDecision(self,generic_plc,action):
-        """Apply the decision from the SCADA system"""
-        if action==1.0:
-            action="open"
-        else:
-            action="closed"
+        """Apply the decision from the SCADA system
+        
+        Args:
+            action: Can be 1.0 (open), 0.0 (closed), or a numeric value 0.0-2.0 for pump speed
+        """
+        if action == 1.0:
+            action = "open"
+        elif action == 0.0 or action == 0:
+            action = "closed"
+        # else: keep numeric value as-is for pump speed control (0.0-2.0)
 
         generic_plc.set_tag(self.actuator, action)
     def getScadaDecision(self,dependantValue,time):
@@ -61,7 +66,11 @@ class BelowControl(Control):
             return self.action
 
     def applyHybridDecision(self, generic_plc, action, ScadaCommand):
-        """Apply the decision from the Hybrid Control system"""
+        """Apply the decision from the Hybrid Control system
+        
+        Args:
+            action: Can be 'rule', 'scada', 'open', 'closed', or a numeric value 0.0-2.0 for pump speed
+        """
         if action == 'rule':
             self.apply(generic_plc)
         elif action == 'scada':
@@ -70,6 +79,9 @@ class BelowControl(Control):
             self.applyScadaDecision(generic_plc, 1.0)
         elif action == 'closed':
             self.applyScadaDecision(generic_plc, 0.0)
+        else:
+            # Numeric value for pump speed control (0.0-2.0)
+            self.applyScadaDecision(generic_plc, action)
 
 
 
@@ -102,11 +114,16 @@ class AboveControl(Control):
             # generic_plc.logger.debug(
             #     generic_plc.intermediate_plc["name"] + " applied " + str(self) + " because dep_val " + str(dep_val))
     def applyScadaDecision(self,generic_plc,action):
-        """Apply the decision from the SCADA system"""
-        if action==1.0:
-            action="open"
-        else:
-            action="closed"
+        """Apply the decision from the SCADA system
+        
+        Args:
+            action: Can be 1.0 (open), 0.0 (closed), or a numeric value 0.0-2.0 for pump speed
+        """
+        if action == 1.0:
+            action = "open"
+        elif action == 0.0 or action == 0:
+            action = "closed"
+        # else: keep numeric value as-is for pump speed control (0.0-2.0)
 
         generic_plc.set_tag(self.actuator, action)
 
@@ -121,7 +138,11 @@ class AboveControl(Control):
             dependant=self.dependant, value=self.value, actuator=self.actuator, action=self.action)
 
     def applyHybridDecision(self, generic_plc, action, ScadaCommand):
-        """Apply the decision from the Hybrid Control system"""
+        """Apply the decision from the Hybrid Control system
+        
+        Args:
+            action: Can be 'rule', 'scada', 'open', 'closed', or a numeric value 0.0-2.0 for pump speed
+        """
         if action == 'rule':
             self.apply(generic_plc)
         elif action == 'scada':
@@ -130,6 +151,9 @@ class AboveControl(Control):
             self.applyScadaDecision(generic_plc, 1.0)
         elif action == 'closed':
             self.applyScadaDecision(generic_plc, 0.0)
+        else:
+            # Numeric value for pump speed control (0.0-2.0)
+            self.applyScadaDecision(generic_plc, action)
 
 
 class TimeControl(Control):
@@ -148,11 +172,16 @@ class TimeControl(Control):
             #generic_plc.logger.debug(
             #    generic_plc.intermediate_plc["name"] + " applied " + str(self) + " because curr_time " + str(curr_time))
     def applyScadaDecision(self,generic_plc,action):
-        """Apply the decision from the SCADA system"""
-        if action==1.0:
-            action="open"
-        else:
-            action="closed"
+        """Apply the decision from the SCADA system
+        
+        Args:
+            action: Can be 1.0 (open), 0.0 (closed), or a numeric value 0.0-2.0 for pump speed
+        """
+        if action == 1.0:
+            action = "open"
+        elif action == 0.0 or action == 0:
+            action = "closed"
+        # else: keep numeric value as-is for pump speed control (0.0-2.0)
 
         generic_plc.set_tag(self.actuator, action)
     def getScadaDecision(self,dependantValue,time):
@@ -161,7 +190,11 @@ class TimeControl(Control):
             return self.action
 
     def applyHybridDecision(self, generic_plc, action, ScadaCommand):
-        """Apply the decision from the Hybrid Control system"""
+        """Apply the decision from the Hybrid Control system
+        
+        Args:
+            action: Can be 'rule', 'scada', 'open', 'closed', or a numeric value 0.0-2.0 for pump speed
+        """
         if action == 'rule':
             self.apply(generic_plc)
         elif action == 'scada':
@@ -170,6 +203,9 @@ class TimeControl(Control):
             self.applyScadaDecision(generic_plc, 1.0)
         elif action == 'closed':
             self.applyScadaDecision(generic_plc, 0.0)
+        else:
+            # Numeric value for pump speed control (0.0-2.0)
+            self.applyScadaDecision(generic_plc, action)
 
     def __str__(self):
         return "Control if time = {value} then set {actuator} to {action}".format(

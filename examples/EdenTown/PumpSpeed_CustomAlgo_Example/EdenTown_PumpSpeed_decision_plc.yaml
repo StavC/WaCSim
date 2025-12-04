@@ -1,0 +1,46 @@
+# EdenTown Variable Pump Speed Control Example
+# =============================================
+# This configuration demonstrates PUMP SPEED CONTROL where custom algorithms
+# return numeric values (0.0 to 2.0) instead of "open"/"closed".
+#
+# Key Points:
+# 1. Custom algorithms return float values for pump speed
+# 2. Speed 0.0 = OFF, 1.0 = normal, 1.5 = 150%, 2.0 = max
+# 3. WaCSim passes the numeric value to EPANET's SETTING property
+# 4. Each pump has its own state file to track current speed
+#
+# Control Logic:
+# - P1 (controlled by PLC4): Speed cycles 0.0 -> 0.1 -> ... -> 1.5 -> 0.0
+# - P2 (controlled by PLC1): Speed cycles 0.0 -> 0.1 -> ... -> 1.5 -> 0.0
+# - V4 and V5 use original rule-based control (backward compatibility)
+#
+# Expected Output:
+# - Every 16 iterations, the speed completes one cycle
+# - Watch the results CSV to see pump flow varying with speed
+
+- name: PLC1
+  actuators:
+    # PUMP SPEED CONTROL: P2 controlled by custom algorithm with variable speed
+    - name: P2
+      decision_maker: examples/EdenTown/PumpSpeed_CustomAlgo_Example/CustomAlgos/PumpSpeed_P2_Algo.py
+      dependents: []  # No sensors needed - stateful speed control
+
+- name: PLC2
+  actuators:
+    # V5 uses rule-based control (no custom algorithm)
+    - name: V5
+      decision_maker: rule
+
+- name: PLC3
+  actuators:
+    # V4 uses rule-based control (no custom algorithm)
+    - name: V4
+      decision_maker: rule
+
+- name: PLC4
+  actuators:
+    # PUMP SPEED CONTROL: P1 controlled by custom algorithm with variable speed
+    - name: P1
+      decision_maker: examples/EdenTown/PumpSpeed_CustomAlgo_Example/CustomAlgos/PumpSpeed_P1_Algo.py
+      dependents: []  # No sensors needed - stateful speed control
+
