@@ -57,32 +57,35 @@ Modified for pump speed control demonstration
 [CURVES]
 ;ID              	X-Value     	Y-Value
 ;==============================================================================
-; PUMP CURVE H1 - High-Head Variable Speed Pump
+; PUMP CURVE H1 - Very High-Head Variable Speed Pump
 ;==============================================================================
-; This curve is designed for variable speed operation:
-; - High shutoff head (150m) allows operation at reduced speeds
+; This curve is designed for variable speed operation at LOW speeds:
+; - Very high shutoff head (300m) allows operation even at 50% speed
+; - At 50% speed: 300 × 0.25 = 75m (still > 63.5m system head!)
 ; - Smooth, realistic curve shape
-; - Non-zero head at max flow (realistic pump behavior)
 ;
-; At different speeds, the curve scales:
-;   Speed 1.5 (150%): Shutoff=337m, MaxFlow=3000 CMH
-;   Speed 1.2 (120%): Shutoff=216m, MaxFlow=2400 CMH  
-;   Speed 1.0 (100%): Shutoff=150m, MaxFlow=2000 CMH (rated)
-;   Speed 0.5 (50%):  Shutoff=37.5m, MaxFlow=1000 CMH (still overcomes ~65m system head? No!)
+; At different speeds, the curve scales (head ~ speed²):
+;   Speed 1.5 (150%): Shutoff=675m, can deliver huge flow
+;   Speed 1.2 (120%): Shutoff=432m, excellent performance
+;   Speed 1.0 (100%): Shutoff=300m, rated operation
+;   Speed 0.7 (70%):  Shutoff=147m, still works well
+;   Speed 0.5 (50%):  Shutoff=75m, CAN overcome 63.5m system head!
+;   Speed 0.4 (40%):  Shutoff=48m, marginal (< 63.5m)
 ;
 ; System head requirement: ~63.5m (tank elevation - reservoir head)
-; At 50% speed, pump only delivers 37.5m, so low flow expected!
-; This demonstrates why VFD pumps need proper curve selection.
+; Minimum speed for flow: ~0.46 (300 × 0.46² = 63.5m)
 ;
 ;------------------------------------------------------------------------------
- H1              	0.0000      	150.000     	; Shutoff head - 150m at zero flow
- H1              	400.0000    	145.000     	; Slight drop
- H1              	800.0000    	135.000     	; Gradual decrease
- H1              	1200.0000   	120.000     	; Mid-range operation
- H1              	1600.0000   	100.000     	; Getting toward BEP
- H1              	2000.0000   	75.000      	; Best efficiency point area
- H1              	2400.0000   	50.000      	; High flow region
- H1              	2800.0000   	30.000      	; Near max flow, still positive head!
+ H1              	0.0000      	300.000     	; Shutoff head - 300m at zero flow
+ H1              	200.0000    	295.000     	; Slight drop
+ H1              	400.0000    	285.000     	; Gradual decrease
+ H1              	600.0000    	270.000     	; 
+ H1              	800.0000    	250.000     	; Mid-range
+ H1              	1000.0000   	225.000     	; 
+ H1              	1200.0000   	195.000     	; BEP area
+ H1              	1400.0000   	160.000     	; 
+ H1              	1600.0000   	120.000     	; High flow
+ H1              	1800.0000   	80.000      	; Near max flow
 
 ;==============================================================================
 ; EFFICIENCY CURVE E1
