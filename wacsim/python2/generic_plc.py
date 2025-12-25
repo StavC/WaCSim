@@ -517,10 +517,6 @@ class GenericPLC(BasePLC):
             elif self.mode == 'scadacontrol':
                 for control in self.controls:
                     CurrentAction = self.scadaCache[f'ScadaCommand_{control.actuator}']
-                    # Skip if SCADA hasn't sent a command yet (None means no decision)
-                    if CurrentAction is None:
-                        self.logger.debug(f'PLC {self.intermediate_plc["name"]} skipping {control.actuator} - no SCADA command received yet')
-                        continue
                     control.applyScadaDecision(self, CurrentAction)
             elif self.mode == 'hybridcontrol':
                 SkipNextActuatorList = set()
@@ -539,10 +535,7 @@ class GenericPLC(BasePLC):
                     elif HybridAction == 'scada':
                         print(f'PLC {self.intermediate_plc["name"]} Scada Command')
                         CurrentAction = self.scadaCache[f'ScadaCommand_{control.actuator}']
-                        if CurrentAction is not None:
-                            control.applyScadaDecision(self, CurrentAction)
-                        else:
-                            self.logger.debug(f'PLC {self.intermediate_plc["name"]} skipping {control.actuator} - no SCADA command received yet')
+                        control.applyScadaDecision(self, CurrentAction)
                     elif HybridAction == 'open':
                         control.applyScadaDecision(self, 1.0)
                     elif HybridAction == 'closed':
