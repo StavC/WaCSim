@@ -1,4 +1,12 @@
 network_attacks:
+    - name: plc3AttackerUnit
+      target: PLC3
+      trigger:
+        type: time
+        start: 295
+        end: 395
+      type: simple_dos
+      direction: source
     - name: plc2AttackerUnit
       target: PLC2
       trigger:
@@ -7,4 +15,5 @@ network_attacks:
         end: 395
       type: simple_dos
       direction: source
+
 

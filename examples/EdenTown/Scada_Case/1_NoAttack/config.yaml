@@ -1,0 +1,10 @@
+inp_file: EdenTownScada.inp
+output_path: output
+iterations: 500
+network_topology_type: complex
+plcs: !include EdenTownScada_plc.yaml
+demand: pdd
+log_level: debug
+demand_patterns: demands_EdenTownScada.csv
+mode: scadacontrol
+

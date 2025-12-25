@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 # === Constants ===
-CSV_DIR = 'examples/EdenTown/Scada_Case/ScadaAlgos/ScadaData'
+CSV_DIR = 'examples/EdenTown/Scada_Case/3_DoS_WithGuard/ScadaAlgos/ScadaData'
 CSV_FILE = os.path.join(CSV_DIR, 'scada_data.csv')
 STATE_FILE = os.path.join(CSV_DIR, 'GuardRoutineState.txt')
 NOISE_THRESHOLD = 0.1
