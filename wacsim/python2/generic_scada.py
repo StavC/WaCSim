@@ -128,6 +128,9 @@ class GenericScada(BasePLC):
             ip_list.append(ip)
         self.updated_plc = pd.DataFrame(index=range(self.iterations+1), columns=ip_list).fillna(False)
         self.scada_run = True
+        
+        # Cache for loaded custom algorithm modules (performance optimization)
+        self._module_cache = {}
 
         self.do_super_construction(scada_protocol, state)
 
@@ -210,7 +213,7 @@ class GenericScada(BasePLC):
         :param sleep:  (Default value = 0.5) The time to sleep after setting everything up
         """
         self.logger.debug('SCADA enters pre_loop')
-        self.db_sleep_time = random.uniform(0.01, 0.1)
+        self.db_sleep_time = 0.005  # Fixed small sleep for faster sync (was random 0.01-0.1)
 
 
 
@@ -396,7 +399,7 @@ class GenericScada(BasePLC):
             #self.logger.debug(self.clock)
             self.set_sync(1)
             while not self.get_sync(2):
-                pass
+                time.sleep(0.001)  # Small sleep to reduce CPU spinning
             if not self.plcs_ready:
                 self.plcs_ready = True
                 #self.logger.debug("SCADA starting update cache thread")
@@ -435,12 +438,16 @@ class GenericScada(BasePLC):
                         if control.actuator in SkipNextActuatorList:
                             continue
 
-                        # Load and run the custom decision algorithm script
-                        ScriptName = HybridAction.split('/')[-1]
-                        spec = importlib.util.spec_from_file_location(ScriptName, HybridAction)
-                        module = importlib.util.module_from_spec(spec)
-                        sys.modules[ScriptName] = module
-                        spec.loader.exec_module(module)
+                        # Load custom algorithm module (cached for performance)
+                        if HybridAction not in self._module_cache:
+                            ScriptName = HybridAction.split('/')[-1]
+                            spec = importlib.util.spec_from_file_location(ScriptName, HybridAction)
+                            module = importlib.util.module_from_spec(spec)
+                            sys.modules[ScriptName] = module
+                            spec.loader.exec_module(module)
+                            self._module_cache[HybridAction] = module
+                        else:
+                            module = self._module_cache[HybridAction]
                         AlgoRun = getattr(module, 'AlgoRun')
                         result = AlgoRun(
                             self.cache.loc[clock])  # Result: 'rule', 'open', 'closed', or (result, skip_flag)

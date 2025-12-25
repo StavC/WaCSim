@@ -150,6 +150,9 @@ class GenericPLC(BasePLC):
         self.plcs_ready = False
         self.plc_recieved_scada = False
         self.plc_run = True
+        
+        # Cache for loaded custom algorithm modules (performance optimization)
+        self._module_cache = {}
 
         self.do_super_construction(plc_protocol, state)
 
@@ -250,7 +253,7 @@ class GenericPLC(BasePLC):
         signal.signal(signal.SIGINT, self.sigint_handler)
         signal.signal(signal.SIGTERM, self.sigint_handler)
         self.logger.debug(self.intermediate_plc['name'] + ' enters pre_loop')
-        self.db_sleep_time = random.uniform(0.01, 0.1)
+        self.db_sleep_time = 0.005  # Fixed small sleep for faster sync (was random 0.01-0.1)
         sensors = self.generate_tags(self.intermediate_plc['sensors'])
         actuators = self.generate_tags(self.intermediate_plc['actuators'])
         values = []
@@ -458,11 +461,11 @@ class GenericPLC(BasePLC):
                     self.plcs_ready = True
                     self.update_cache_flag = True
             while not self.get_sync(0):
-                pass
+                time.sleep(0.001)  # Small sleep to reduce CPU spinning
             self.send_system_state()
             self.set_sync(1)
             while not self.get_sync(2):
-                pass
+                time.sleep(0.001)  # Small sleep to reduce CPU spinning
             if self.mode!='scadacontrol':
 
                 self.update_cache(self.PLC_CACHE_UPDATE_TIME)
@@ -471,7 +474,7 @@ class GenericPLC(BasePLC):
                 # Wait until all tags have been updated. TODO, set max attempts
             if self.mode == 'scadacontrol' or self.mode == 'hybridcontrol':
                 while not (self.scada_get_sync(25) or self.scada_get_sync(3) or self.get_sync(3)):
-                    pass
+                    time.sleep(0.001)  # Small sleep to reduce CPU spinning
                 self.logger.debug(f'PLC {self.intermediate_plc["name"]} is here again....')
                 self.update_cache_flag = True
                 self.plc_recieved_scada = True
@@ -496,12 +499,17 @@ class GenericPLC(BasePLC):
                         if control.actuator in SkipNextActuatorList:
                             continue
                         else:
-                            self.logger.debug(f'PLC {self.intermediate_plc["name"]} applied {control} because of custom algo')
-                            ScriptName = Action.split('/')[-1]
-                            spec = importlib.util.spec_from_file_location(ScriptName, Action)
-                            module = importlib.util.module_from_spec(spec)
-                            sys.modules[ScriptName] = module
-                            spec.loader.exec_module(module)
+                            self.logger.debug(f'PLC {self.intermediate_plc["name"]} executing custom algorithm for actuator {control.actuator} (script: {Action})')
+                            # Load custom algorithm module (cached for performance)
+                            if Action not in self._module_cache:
+                                ScriptName = Action.split('/')[-1]
+                                spec = importlib.util.spec_from_file_location(ScriptName, Action)
+                                module = importlib.util.module_from_spec(spec)
+                                sys.modules[ScriptName] = module
+                                spec.loader.exec_module(module)
+                                self._module_cache[Action] = module
+                            else:
+                                module = self._module_cache[Action]
                             AlgoRun = getattr(module, 'AlgoRun')
                             result = AlgoRun(self.cache, LocalSensorsValues)
                             if isinstance(result, tuple):
@@ -544,12 +552,17 @@ class GenericPLC(BasePLC):
                         if control.actuator in SkipNextActuatorList:
                             continue
                         else:
-                            self.logger.debug(f'PLC {self.intermediate_plc["name"]} ,trying to run the custom algo for {control.actuator}, his action is {HybridAction} and self.decision_maker is {self.decision_maker}')
-                            ScriptName = HybridAction.split('/')[-1]
-                            spec = importlib.util.spec_from_file_location(ScriptName, HybridAction)
-                            module = importlib.util.module_from_spec(spec)
-                            sys.modules[ScriptName] = module
-                            spec.loader.exec_module(module)
+                            self.logger.debug(f'PLC {self.intermediate_plc["name"]} executing custom algorithm for actuator {control.actuator} (script: {HybridAction})')
+                            # Load custom algorithm module (cached for performance)
+                            if HybridAction not in self._module_cache:
+                                ScriptName = HybridAction.split('/')[-1]
+                                spec = importlib.util.spec_from_file_location(ScriptName, HybridAction)
+                                module = importlib.util.module_from_spec(spec)
+                                sys.modules[ScriptName] = module
+                                spec.loader.exec_module(module)
+                                self._module_cache[HybridAction] = module
+                            else:
+                                module = self._module_cache[HybridAction]
                             AlgoRun = getattr(module, 'AlgoRun')
                             result = AlgoRun(self.cache, LocalSensorsValues, self.scadaCache, control)
                             if isinstance(result, tuple):
