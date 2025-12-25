@@ -457,7 +457,9 @@ class GenericScada(BasePLC):
                                 self.cache.loc[clock][control.dependant],
                                 self.get_master_clock()
                             )
-                            ControlsActions.append((control.actuator, decision))
+                            # Only add action if control condition was met (decision is not None)
+                            if decision is not None:
+                                ControlsActions.append((control.actuator, decision))
                         else:
                             # Append final decision from algorithm
                             ControlsActions.append((control.actuator, result, self.get_master_clock()))
