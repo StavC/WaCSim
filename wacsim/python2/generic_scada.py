@@ -493,6 +493,35 @@ class GenericScada(BasePLC):
                         self.intermediate_yaml['scada']['local_ip']
                     )
 
+                # Ensure all ScadaCommand values are initialized (not NaN)
+                # If no control fired for an actuator, use previous value or default to 1 (open)
+                for actuator in self.intermediate_yaml['actuators']:
+                    scada_cmd_tag = f'ScadaCommand_{actuator["name"]}'
+                    current_value = self.cache.loc[clock, scada_cmd_tag]
+                    
+                    # Check if value is NaN (using pd.isna for robustness)
+                    if pd.isna(current_value):
+                        if clock > 0:
+                            # Use previous iteration's value
+                            prev_value = self.cache.loc[clock - 1, scada_cmd_tag]
+                            if pd.notna(prev_value):
+                                self.cache.loc[clock, scada_cmd_tag] = prev_value
+                                self.set((scada_cmd_tag, 1), prev_value)
+                                self.send((scada_cmd_tag, 1), prev_value, 
+                                         self.intermediate_yaml['scada']['local_ip'])
+                            else:
+                                # Default to 1 (open) - pumps default to open in EPANET
+                                self.cache.loc[clock, scada_cmd_tag] = 1
+                                self.set((scada_cmd_tag, 1), 1)
+                                self.send((scada_cmd_tag, 1), 1,
+                                         self.intermediate_yaml['scada']['local_ip'])
+                        else:
+                            # First iteration - default to 1 (open)
+                            self.cache.loc[clock, scada_cmd_tag] = 1
+                            self.set((scada_cmd_tag, 1), 1)
+                            self.send((scada_cmd_tag, 1), 1,
+                                     self.intermediate_yaml['scada']['local_ip'])
+
                 # Notify the physical process that SCADA has completed this iteration's decision logic
                 #self.logger.debug("setting sync to 25")
                 self.set_sync(25)
