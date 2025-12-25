@@ -15,7 +15,7 @@ EdenTown SCADA Case
  R1              	3.048       	                	;
 
 [TANKS]
-;ID              	Elevation   	InitLevel   	MinLevel    	MaxLevel    	Diameter    	MinVol      	VolCurve
+;ID              	Elevation   	InitLevel   	MinLevel    	MaxLevel    	Diameter    	MinVol      	VolCurve        	Overflow
  T1              	66.535      	3.051       	0           	10.668      	9.9532      	0           	                	;
  T2              	66.535      	3.051       	0           	10.668      	9.9532      	0           	                	;
 
@@ -72,8 +72,6 @@ EdenTown SCADA Case
 [CONTROLS]
 LINK   P2  OPEN    IF NODE T2                BELOW    3
 LINK   P2  CLOSED  IF NODE T2                ABOVE    7
-LINK   P1  OPEN    IF NODE T1                BELOW    6
-LINK   P1  CLOSED  IF NODE T1                ABOVE    7
 
 
 
@@ -197,3 +195,6 @@ T2              	4216.024          	5639.395
  OFFSET         	0.00            	0.00            
 
 [END]
+
+
+

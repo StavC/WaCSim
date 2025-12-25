@@ -6,3 +6,4 @@
   actuators:
     - name: P1
       decision_maker: examples/EdenTown/Scada_Case/3_DoS_WithGuard/ScadaAlgos/Scada_P1_Algo.py
+      dependents: [T1]  # Required sensor for guard algorithm - uses v0.5.1 synthetic control

@@ -1,3 +1,18 @@
+"""
+Guard Algorithm for P1 Pump Control (v0.5.1)
+
+This algorithm uses the NEW v0.5.1 feature: Custom algorithms without INP control rules.
+- No BELOW/ABOVE rules for P1 in the INP file
+- Uses 'dependents: [T1]' in YAML to specify required sensors
+- WaCSim creates a synthetic TIME control at iteration 0
+- Algorithm has FULL control of P1 from the start
+
+The algorithm handles:
+1. Normal operation: Sensor-based control (T1 level thresholds)
+2. DoS attack: Historical median cycle times
+3. Recovery: Automatic return to sensor-based control
+"""
+
 import os
 import pandas as pd
 import numpy as np
@@ -8,7 +23,12 @@ CSV_FILE = os.path.join(CSV_DIR, 'scada_data.csv')
 STATE_FILE = os.path.join(CSV_DIR, 'GuardRoutineState.txt')
 NOISE_THRESHOLD = 0.1
 WINDOW_SIZE = 5
-# --- NEW: Bias factors for cycle times ---
+
+# Tank level thresholds (same as original INP rules)
+T1_LOW_THRESHOLD = 6.0   # Turn pump ON below this
+T1_HIGH_THRESHOLD = 7.0  # Turn pump OFF above this
+
+# Bias factors for cycle times during DoS
 MEDIAN_ON_BIAS = -3
 MEDIAN_OFF_BIAS = 2
 
@@ -68,6 +88,12 @@ def write_state_file(remaining: int, state: str, progress: int, state_file: str 
         f.write(f"{remaining},{state},{progress}")
 
 
+def write_safe_state(state_file: str = STATE_FILE):
+    """Writes 'Safe' state indicating normal operation."""
+    with open(state_file, 'w') as f:
+        f.write('Safe')
+
+
 # === Core Logic ===
 def get_median_cycles(df: pd.DataFrame, dos_mask: pd.Series):
     """Calculates biased median ON/OFF cycle durations from clean historical data."""
@@ -101,7 +127,7 @@ def get_median_cycles(df: pd.DataFrame, dos_mask: pd.Series):
         else:
             off_durations.append(current_duration)
 
-    # --- MODIFIED: Apply bias to median calculations ---
+    # Apply bias to median calculations
     median_on_raw = int(round(np.median(on_durations))) if on_durations else 0
     median_off_raw = int(round(np.median(off_durations))) if off_durations else 0
 
@@ -130,6 +156,14 @@ def count_interrupted_cycle_duration(df: pd.DataFrame) -> int:
     return duration
 
 
+def get_last_pump_state(df: pd.DataFrame) -> str:
+    """Returns the last known pump state as 'open' or 'closed'."""
+    if df.empty or 'P1' not in df.columns:
+        return 'open'  # Default to open if no history
+    last_state = df['P1'].iloc[-1]
+    return 'open' if last_state == 1 else 'closed'
+
+
 def CheckForDoSAttack(df: pd.DataFrame) -> bool:
     """Checks if the last few data points indicate an ongoing DoS attack."""
     if len(df) < WINDOW_SIZE:
@@ -148,8 +182,10 @@ def CheckForTeardown(df: pd.DataFrame, noise_threshold: float = NOISE_THRESHOLD)
 
 def GuardAlgo(df: pd.DataFrame) -> str:
     """
-    Main guard algorithm, executed during a DoS attack.
-    Uses biased median cycle times and correctly calculates interrupted cycle duration.
+    Guard algorithm executed during a DoS attack.
+    Uses biased median cycle times to maintain pump cycling.
+    
+    Returns: 'open' or 'closed' (no skip mechanism needed with v0.5.1)
     """
     state_data = read_state_file()
 
@@ -184,39 +220,80 @@ def GuardAlgo(df: pd.DataFrame) -> str:
         new_duration = median_on if curr_state == 'open' else median_off
         remaining = new_duration - 1
         progress = 1
-        print(
-            f"Guard Action: Switching P1 to {curr_state}. New biased cycle duration: {new_duration}. Progress: {progress}")
+        print(f"Guard Action: Switching P1 to {curr_state}. New biased cycle duration: {new_duration}. Progress: {progress}")
 
     write_state_file(remaining, curr_state, progress)
-    return curr_state
+    return curr_state  # No skip flag - only one control per actuator now
+
+
+def NormalControl(cache_dict: pd.Series, df: pd.DataFrame) -> str:
+    """
+    Normal sensor-based pump control when no attack is detected.
+    Replicates the original INP rule logic:
+      - LINK P1 OPEN IF NODE T1 BELOW 6
+      - LINK P1 CLOSED IF NODE T1 ABOVE 7
+    
+    Returns: 'open', 'closed', or maintains current state in hysteresis zone
+    """
+    t1_level = cache_dict.get('T1', None)
+    
+    # If T1 is not available, maintain current state
+    if t1_level is None or pd.isna(t1_level):
+        print(f"NormalControl: T1 not available, maintaining current state")
+        return get_last_pump_state(df)
+    
+    if t1_level < T1_LOW_THRESHOLD:
+        print(f"NormalControl: T1={t1_level:.2f}m < {T1_LOW_THRESHOLD}m → P1 OPEN")
+        return 'open'
+    elif t1_level > T1_HIGH_THRESHOLD:
+        print(f"NormalControl: T1={t1_level:.2f}m > {T1_HIGH_THRESHOLD}m → P1 CLOSED")
+        return 'closed'
+    else:
+        # In hysteresis zone - maintain current state
+        current_state = get_last_pump_state(df)
+        print(f"NormalControl: T1={t1_level:.2f}m in hysteresis zone [{T1_LOW_THRESHOLD}-{T1_HIGH_THRESHOLD}] → P1 remains {current_state}")
+        return current_state
 
 
 def AlgoRun(cache_dict: pd.Series):
-    """Main entry point for the algorithm on each new SCADA reading."""
-    if os.path.exists(CSV_FILE):
-        try:
-            df_check = get_csv_pointer(CSV_FILE)
-            if not df_check.empty and df_check.iloc[-1]['iteration'] == cache_dict['iteration']:
-                return 'rule'
-        except (FileNotFoundError, pd.errors.EmptyDataError):
-            pass
-
+    """
+    Main entry point for the algorithm on each SCADA iteration.
+    
+    With v0.5.1 (no INP rules for P1):
+    - Algorithm has FULL control of P1
+    - Returns 'open' or 'closed' directly (no 'rule' fallback)
+    - No skip mechanism needed (single synthetic control)
+    
+    Logic:
+    1. Save current SCADA data to CSV for history
+    2. Check if DoS attack is in progress
+    3. If DoS: Use guard algorithm (median cycle times)
+    4. If normal: Use sensor-based control (T1 thresholds)
+    """
+    # Save current data to CSV
     update_csv_with_cache(cache_dict)
-    df = get_csv_pointer()
-
-    if os.path.exists(STATE_FILE) and CheckForTeardown(df):
+    
+    try:
+        df = get_csv_pointer()
+    except FileNotFoundError:
+        # First iteration - no history yet
+        df = pd.DataFrame()
+    
+    # Check for teardown (recovery from DoS)
+    if os.path.exists(STATE_FILE) and len(df) >= 3 and CheckForTeardown(df):
         print("Teardown detected. Resetting state to Safe.")
-        with open(STATE_FILE, 'w') as f:
-            f.write('Safe')
-        return 'rule'
-
+        write_safe_state()
+    
+    # Check for DoS attack
     if CheckForDoSAttack(df):
-        result = GuardAlgo(df)
-        return result, True
+        # DoS detected - use guard algorithm
+        return GuardAlgo(df)
     else:
+        # Normal operation - ensure state is Safe
         state_content = read_state_file()
         if state_content not in [None, 'Safe']:
             print("DoS event ended. Resetting state to Safe.")
-            with open(STATE_FILE, 'w') as f:
-                f.write('Safe')
-        return 'rule'
+            write_safe_state()
+        
+        # Use sensor-based control
+        return NormalControl(cache_dict, df)
