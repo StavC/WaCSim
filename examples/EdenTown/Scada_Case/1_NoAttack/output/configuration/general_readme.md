@@ -2,7 +2,7 @@
 
 ## Input files
 
-Input files have been copied to ```/home/vboxuser/Desktop/WaCSim/examples/EdenTown/Scada_Case/DoS_No_Guard```. In case any extra files were used, these files will be copied to the /output/configuration folder as well.
+Input files have been copied to ```/home/vboxuser/Desktop/WacsimCur/WaCSim/examples/EdenTown/Scada_Case/1_NoAttack/output```. In case any extra files were used, these files will be copied to the /output/configuration folder as well.
 
 ## Initial conditions
 
@@ -28,8 +28,8 @@ Mininet links can be found in the file mininet_links.md in this configuration fo
 
 Ran with wacsim v1.1.1.
 
-Ran for 400 out of 400 iterations with hydraulic timestep 300.
+Ran for 500 out of 500 iterations with hydraulic timestep 300.
 
-Started at 2025-07-10 18:37:02 and finished at 2025-07-23 14:40:22.
+Started at 2025-12-25 16:34:21 and finished at 2025-12-25 17:11:35.
 
-The duration of this simulation was 12 days, 20:03:20.139879.
+The duration of this simulation was 0:37:14.138380.

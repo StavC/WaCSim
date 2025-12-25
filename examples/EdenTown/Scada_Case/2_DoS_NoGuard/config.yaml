@@ -1,5 +1,5 @@
 inp_file: EdenTownScada.inp
-output_path: output
+output_path: outputNew2
 iterations: 500
 network_topology_type: complex
 plcs: !include EdenTownScada_plc.yaml
