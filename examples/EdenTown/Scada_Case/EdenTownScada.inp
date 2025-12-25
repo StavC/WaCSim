@@ -8,8 +8,6 @@ EdenTown SCADA Case
  J3              	15.2400     	600.565002  	PAT1            	;
  J4              	15.2400     	500.130005  	PAT1            	;
  J5              	15.2400     	850.000000  	PAT1            	;
- J1S             	15.24       	0           	                	;
- J2S             	15.24       	0           	                	;
 
 [RESERVOIRS]
 ;ID              	Head        	Pattern         
@@ -23,12 +21,12 @@ EdenTown SCADA Case
 
 [PIPES]
 ;ID              	Node1           	Node2           	Length      	Diameter    	Roughness   	MinorLoss   	Status
- PIPE1           	J1              	J2              	2743.2000   	304.8       	70.0000     	0.0000      	Open  	;Res
- PIPE3           	J1S             	J3              	1828.8000   	254.0       	120.0000    	0.0000      	Open  	;Res
- PIPE2           	J2S             	J4              	1828.8000   	254.0       	70.0000     	0.0000      	Open  	;city
- PIPE4           	J3              	J4              	1828.8000   	254.0       	70.0000     	0.0000      	Open  	;city
- PIPE5           	J3              	J5              	30.4800     	304.8       	120.0000    	0.0000      	Open  	;city
- PIPE6           	J4              	T2              	0.3048      	304.8       	120.0000    	0.0000      	Open  	;Res
+ PIPE1           	J1              	J2              	2743.2000   	304.8       	70.0000     	0.0000      	Open  	;
+ PIPE3           	J1              	J3              	1828.8000   	254.0       	120.0000    	0.0000      	Open  	;
+ PIPE2           	J2              	J4              	1828.8000   	254.0       	70.0000     	0.0000      	Open  	;
+ PIPE4           	J3              	J4              	1828.8000   	254.0       	70.0000     	0.0000      	Open  	;
+ PIPE5           	J3              	J5              	30.4800     	304.8       	120.0000    	0.0000      	Open  	;
+ PIPE6           	J4              	T2              	0.3048      	304.8       	120.0000    	0.0000      	Open  	;
  PIPE7           	T1              	J5              	1000        	304.8       	120.0000    	0.0000      	Open  	;
 
 [PUMPS]
@@ -37,9 +35,7 @@ EdenTown SCADA Case
  P1              	R1              	J1              	HEAD H1	;
 
 [VALVES]
-;ID              	Node1           	Node2           	Diameter    	Type	Setting     	MinorLoss   
- V13             	J1              	J1S             	254         	PRV 	0           	0           	;
- V24             	J2              	J2S             	254         	PRV 	0           	0           	;
+;ID              	Node1           	Node2           	Diameter    	Type	Setting     	MinorLoss
 
 [TAGS]
 
@@ -183,8 +179,6 @@ J2              	6450.570          	4424.640
 J3              	6466.770          	5769.850          
 J4              	5332.250          	5332.250          
 J5              	6094.000          	6499.190          
-J1S             	7285.905          	5781.610          
-J2S             	6339.440          	4619.371          
 R2              	7320.233          	4305.517          
 R1              	7962.652          	5752.186          
 T1              	6094.000          	7200.190          

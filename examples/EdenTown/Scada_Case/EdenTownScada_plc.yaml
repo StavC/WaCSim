@@ -14,12 +14,6 @@
   sensors: 
      - J1
      - J2
-- name: VPLC13
-  sensors:
-     - V13F
-- name: VPLC24
-  sensors:
-     - V24F
 
 
 
