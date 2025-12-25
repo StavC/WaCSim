@@ -16,8 +16,8 @@ EdenTown SCADA Case
 
 [TANKS]
 ;ID              	Elevation   	InitLevel   	MinLevel    	MaxLevel    	Diameter    	MinVol      	VolCurve        	Overflow
- T1              	66.535      	3.051       	0           	10.668      	9.9532      	0           	                	;
- T2              	66.535      	3.051       	0           	10.668      	9.9532      	0           	                	;
+ T1              	66.535      	3.051       	0           	10.668      	9.9532      	0           	                	Yes	;
+ T2              	66.535      	3.051       	0           	10.668      	9.9532      	0           	                	Yes	;
 
 [PIPES]
 ;ID              	Node1           	Node2           	Length      	Diameter    	Roughness   	MinorLoss   	Status
