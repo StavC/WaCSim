@@ -470,6 +470,18 @@ class GenericScada(BasePLC):
 
                 # Apply the SCADA decisions by writing them to the shared database and broadcasting to PLCs
                 for action in ControlsActions:
+                    # Skip if decision is None (no control condition was satisfied, keep current state)
+                    if action[1] is None:
+                        # Keep current state - just read and resend the existing value
+                        UpdatedValue = self.get((f'ScadaCommand_{action[0]}', 1))
+                        self.cache.loc[clock, f'ScadaCommand_{action[0]}'] = UpdatedValue
+                        self.send(
+                            (f'ScadaCommand_{action[0]}', 1),
+                            UpdatedValue,
+                            self.intermediate_yaml['scada']['local_ip']
+                        )
+                        continue
+                    
                     # Convert symbolic actuator action into numeric values
                     # action[1] can be 'closed', 'open', or a numeric value for pump speed (0.0-2.0)
                     if action[1] == 'closed':
