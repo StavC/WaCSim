@@ -6,7 +6,9 @@ Simple approach:
 2. When DoS detected: Use historical median cycle times as heuristic
 3. Continue current cycle to completion, then alternate at median intervals
 
-No bias, no complexity - just median-based cycling.
+Bias applied to keep tank in 6-8m range during DoS:
+- MEDIAN_ON_BIAS = -1 (pump slightly less)
+- MEDIAN_OFF_BIAS = +1 (rest slightly more)
 """
 
 import os
@@ -25,6 +27,13 @@ WINDOW_SIZE = 5        # Number of samples to check for DoS
 # === Tank Thresholds (same as original INP rules) ===
 T1_LOW = 6.0   # Turn pump ON below this
 T1_HIGH = 7.0  # Turn pump OFF above this
+
+# === Bias for Guard Mode (to keep tank in 6-8m range) ===
+# Negative ON bias = pump less, Positive OFF bias = rest more
+MEDIAN_ON_BIAS = -1   # Pump 1 iteration less than median
+MEDIAN_OFF_BIAS = 1   # Rest 1 iteration more than median
+MIN_ON_DURATION = 2   # Minimum ON time to actually move water
+MIN_OFF_DURATION = 2  # Minimum OFF time for tank to respond
 
 
 # ============== CSV Functions ==============
@@ -143,15 +152,20 @@ def calculate_medians(df: pd.DataFrame) -> tuple:
         else:
             off_durations.append(current_count)
     
-    # Calculate medians (use defaults if empty)
-    median_on = int(np.median(on_durations)) if on_durations else 5
-    median_off = int(np.median(off_durations)) if off_durations else 5
+    # Calculate raw medians (use defaults if empty)
+    raw_on = int(np.median(on_durations)) if on_durations else 5
+    raw_off = int(np.median(off_durations)) if off_durations else 5
     
-    # Ensure at least 1 iteration each
-    median_on = max(1, median_on)
-    median_off = max(1, median_off)
+    # Apply bias to shift equilibrium (pump less, rest more = lower tank level)
+    biased_on = raw_on + MEDIAN_ON_BIAS
+    biased_off = raw_off + MEDIAN_OFF_BIAS
     
-    print(f"Calculated medians from {len(clean_df)} clean samples: ON={median_on}, OFF={median_off}")
+    # Ensure minimum durations
+    median_on = max(MIN_ON_DURATION, biased_on)
+    median_off = max(MIN_OFF_DURATION, biased_off)
+    
+    print(f"Calculated medians from {len(clean_df)} clean samples: "
+          f"raw ON={raw_on}, OFF={raw_off} → biased ON={median_on}, OFF={median_off}")
     return median_on, median_off
 
 
