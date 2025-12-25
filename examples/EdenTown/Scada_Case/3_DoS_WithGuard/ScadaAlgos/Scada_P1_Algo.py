@@ -1,299 +1,323 @@
 """
 Guard Algorithm for P1 Pump Control (v0.5.1)
 
-This algorithm uses the NEW v0.5.1 feature: Custom algorithms without INP control rules.
-- No BELOW/ABOVE rules for P1 in the INP file
-- Uses 'dependents: [T1]' in YAML to specify required sensors
-- WaCSim creates a synthetic TIME control at iteration 0
-- Algorithm has FULL control of P1 from the start
+Simple approach:
+1. During normal operation: Use sensor-based control (T1 thresholds)
+2. When DoS detected: Use historical median cycle times as heuristic
+3. Continue current cycle to completion, then alternate at median intervals
 
-The algorithm handles:
-1. Normal operation: Sensor-based control (T1 level thresholds)
-2. DoS attack: Historical median cycle times
-3. Recovery: Automatic return to sensor-based control
+No bias, no complexity - just median-based cycling.
 """
 
 import os
 import pandas as pd
 import numpy as np
 
-# === Constants ===
+# === Paths ===
 CSV_DIR = 'examples/EdenTown/Scada_Case/3_DoS_WithGuard/ScadaAlgos/ScadaData'
 CSV_FILE = os.path.join(CSV_DIR, 'scada_data.csv')
-STATE_FILE = os.path.join(CSV_DIR, 'GuardRoutineState.txt')
-NOISE_THRESHOLD = 0.1
-WINDOW_SIZE = 5
+STATE_FILE = os.path.join(CSV_DIR, 'guard_state.txt')
 
-# Tank level thresholds (same as original INP rules)
-T1_LOW_THRESHOLD = 6.0   # Turn pump ON below this
-T1_HIGH_THRESHOLD = 7.0  # Turn pump OFF above this
+# === Detection Parameters ===
+NOISE_THRESHOLD = 0.1  # T1 variation below this = frozen (DoS)
+WINDOW_SIZE = 5        # Number of samples to check for DoS
 
-# Bias factors for cycle times during DoS
-MEDIAN_ON_BIAS = -3
-MEDIAN_OFF_BIAS = 2
+# === Tank Thresholds (same as original INP rules) ===
+T1_LOW = 6.0   # Turn pump ON below this
+T1_HIGH = 7.0  # Turn pump OFF above this
 
 
-# === CSV Functions ===
-def update_csv_with_cache(cache_dict: pd.Series, csv_file: str = CSV_FILE):
-    """Appends a new data row from a cache dictionary to the CSV file."""
-    if not isinstance(cache_dict, pd.Series) or cache_dict.empty:
-        raise ValueError("cache_dict must be a non-empty pandas Series")
+# ============== CSV Functions ==============
 
-    os.makedirs(os.path.dirname(csv_file), exist_ok=True)
+def save_to_csv(cache_dict: pd.Series):
+    """Append current SCADA data to CSV history."""
+    os.makedirs(CSV_DIR, exist_ok=True)
     df = cache_dict.to_frame().T
-
-    if os.path.isfile(csv_file):
-        df.to_csv(csv_file, mode='a', header=False, index=False)
+    
+    if os.path.isfile(CSV_FILE):
+        df.to_csv(CSV_FILE, mode='a', header=False, index=False)
     else:
-        df.to_csv(csv_file, mode='w', header=True, index=False)
+        df.to_csv(CSV_FILE, mode='w', header=True, index=False)
 
 
-def get_csv_pointer(csv_file: str = CSV_FILE) -> pd.DataFrame:
-    """Reads the entire CSV file into a pandas DataFrame."""
-    if not os.path.isfile(csv_file):
-        raise FileNotFoundError(f"The file {csv_file} does not exist.")
-    return pd.read_csv(csv_file)
+def load_csv() -> pd.DataFrame:
+    """Load CSV history. Returns empty DataFrame if file doesn't exist."""
+    if os.path.isfile(CSV_FILE):
+        return pd.read_csv(CSV_FILE)
+    return pd.DataFrame()
 
 
-# === DoS Detection ===
-def compute_DoS_mask(df: pd.DataFrame, noise_threshold: float = NOISE_THRESHOLD,
-                     window_size: int = WINDOW_SIZE) -> pd.Series:
-    """Computes a boolean mask indicating DoS periods in the data."""
-    mask = pd.Series([False] * len(df), index=df.index)
-    for i in range(window_size, len(df) + 1):
-        window = df['T1'].iloc[i - window_size:i]
-        if ((window.max() - window.min()) < noise_threshold) or window.isna().all():
-            mask.iloc[i - window_size:i] = True
-    return mask
+# ============== State File ==============
 
-
-# === Helper Functions for State File ===
-def read_state_file(state_file: str = STATE_FILE):
-    """Reads the current state of the guard routine from its state file."""
-    if not os.path.exists(state_file):
+def read_state():
+    """
+    Read guard state. Returns None if not in guard mode.
+    Format: remaining,current_state,median_on,median_off
+    """
+    if not os.path.exists(STATE_FILE):
         return None
-    with open(state_file, 'r') as f:
-        content = f.read().strip()
-        if content == 'Safe':
-            return 'Safe'
-        parts = content.split(',')
-        if len(parts) == 3:
-            return int(parts[0]), parts[1], int(parts[2])
+    try:
+        with open(STATE_FILE, 'r') as f:
+            content = f.read().strip()
+            if not content or content == 'normal':
+                return None
+            parts = content.split(',')
+            if len(parts) == 4:
+                return {
+                    'remaining': int(parts[0]),
+                    'state': parts[1],  # 'open' or 'closed'
+                    'median_on': int(parts[2]),
+                    'median_off': int(parts[3])
+                }
+    except:
+        pass
     return None
 
 
-def write_state_file(remaining: int, state: str, progress: int, state_file: str = STATE_FILE):
-    """Writes the guard routine's current state to the state file."""
-    with open(state_file, 'w') as f:
-        f.write(f"{remaining},{state},{progress}")
+def write_state(remaining: int, state: str, median_on: int, median_off: int):
+    """Save guard state."""
+    os.makedirs(CSV_DIR, exist_ok=True)
+    with open(STATE_FILE, 'w') as f:
+        f.write(f"{remaining},{state},{median_on},{median_off}")
 
 
-def write_safe_state(state_file: str = STATE_FILE):
-    """Writes 'Safe' state indicating normal operation."""
-    with open(state_file, 'w') as f:
-        f.write('Safe')
+def clear_state():
+    """Clear guard state (return to normal operation)."""
+    if os.path.exists(STATE_FILE):
+        with open(STATE_FILE, 'w') as f:
+            f.write('normal')
 
 
-# === Core Logic ===
-def get_median_cycles(df: pd.DataFrame, dos_mask: pd.Series):
-    """Calculates biased median ON/OFF cycle durations from clean historical data."""
-    if 'P1' not in df.columns:
-        raise ValueError("Missing 'P1' column.")
+# ============== Median Calculation ==============
 
-    clean_df = df[~dos_mask]
-
-    if clean_df.empty:
-        return 0, 0
-
-    on_durations, off_durations = [], []
-    current_duration, current_state = 0, None
-
-    for _, row in clean_df.iterrows():
+def calculate_medians(df: pd.DataFrame) -> tuple:
+    """
+    Calculate median ON and OFF durations from historical data.
+    Only uses data BEFORE any DoS (clean data).
+    
+    Returns: (median_on, median_off)
+    """
+    if df.empty or 'P1' not in df.columns:
+        return 5, 5  # Default if no history
+    
+    # Find where DoS starts (frozen T1 values)
+    dos_start = None
+    for i in range(WINDOW_SIZE, len(df)):
+        window = df['T1'].iloc[i-WINDOW_SIZE:i]
+        if (window.max() - window.min()) < NOISE_THRESHOLD:
+            dos_start = i - WINDOW_SIZE
+            break
+    
+    # Use only clean data (before DoS)
+    clean_df = df.iloc[:dos_start] if dos_start else df
+    
+    if len(clean_df) < 10:
+        return 5, 5  # Not enough data
+    
+    # Count consecutive ON and OFF durations
+    on_durations = []
+    off_durations = []
+    
+    current_state = None
+    current_count = 0
+    
+    for val in clean_df['P1']:
         if current_state is None:
-            current_state = row['P1']
-            current_duration = 1
-        elif row['P1'] == current_state:
-            current_duration += 1
+            current_state = val
+            current_count = 1
+        elif val == current_state:
+            current_count += 1
         else:
+            # State changed - record duration
             if current_state == 1:
-                on_durations.append(current_duration)
+                on_durations.append(current_count)
             else:
-                off_durations.append(current_duration)
-            current_state, current_duration = row['P1'], 1
-
-    if current_duration > 0:
+                off_durations.append(current_count)
+            current_state = val
+            current_count = 1
+    
+    # Don't forget the last run
+    if current_count > 0:
         if current_state == 1:
-            on_durations.append(current_duration)
+            on_durations.append(current_count)
         else:
-            off_durations.append(current_duration)
+            off_durations.append(current_count)
+    
+    # Calculate medians (use defaults if empty)
+    median_on = int(np.median(on_durations)) if on_durations else 5
+    median_off = int(np.median(off_durations)) if off_durations else 5
+    
+    # Ensure at least 1 iteration each
+    median_on = max(1, median_on)
+    median_off = max(1, median_off)
+    
+    print(f"Calculated medians from {len(clean_df)} clean samples: ON={median_on}, OFF={median_off}")
+    return median_on, median_off
 
-    # Apply bias to median calculations
-    median_on_raw = int(round(np.median(on_durations))) if on_durations else 0
-    median_off_raw = int(round(np.median(off_durations))) if off_durations else 0
 
-    # Apply bias and ensure duration is not negative
-    biased_median_on = max(0, median_on_raw + MEDIAN_ON_BIAS)
-    biased_median_off = max(0, median_off_raw + MEDIAN_OFF_BIAS)
-
-    return biased_median_on, biased_median_off
-
-
-def count_interrupted_cycle_duration(df: pd.DataFrame) -> int:
+def get_current_cycle_duration(df: pd.DataFrame) -> tuple:
     """
-    Counts backward from the last row to find the duration of the current,
-    uninterrupted state of P1.
+    Count how long the pump has been in its current state.
+    Returns: (current_state, duration)
     """
-    if df.empty:
-        return 0
-
-    last_state = df['P1'].iloc[-1]
+    if df.empty or 'P1' not in df.columns:
+        return 1, 0  # Assume ON with 0 duration
+    
+    current_state = df['P1'].iloc[-1]
     duration = 0
+    
     for i in range(len(df) - 1, -1, -1):
-        if df['P1'].iloc[i] == last_state:
+        if df['P1'].iloc[i] == current_state:
             duration += 1
         else:
             break
-    return duration
+    
+    return current_state, duration
 
 
-def get_last_pump_state(df: pd.DataFrame) -> str:
-    """Returns the last known pump state as 'open' or 'closed'."""
-    if df.empty or 'P1' not in df.columns:
-        return 'open'  # Default to open if no history
-    last_state = df['P1'].iloc[-1]
-    return 'open' if last_state == 1 else 'closed'
+# ============== DoS Detection ==============
 
-
-def CheckForDoSAttack(df: pd.DataFrame) -> bool:
-    """Checks if the last few data points indicate an ongoing DoS attack."""
+def is_dos_active(df: pd.DataFrame) -> bool:
+    """Check if DoS is currently active (T1 values frozen)."""
     if len(df) < WINDOW_SIZE:
         return False
-    last_window = df['T1'].iloc[-WINDOW_SIZE:]
-    return ((last_window.max() - last_window.min()) < NOISE_THRESHOLD) or last_window.isna().all()
+    
+    window = df['T1'].iloc[-WINDOW_SIZE:]
+    variation = window.max() - window.min()
+    return variation < NOISE_THRESHOLD
 
 
-def CheckForTeardown(df: pd.DataFrame, noise_threshold: float = NOISE_THRESHOLD) -> bool:
-    """Checks for a sudden return to normal operation, indicating DoS teardown."""
-    if len(df) < 3:
+def is_dos_ended(df: pd.DataFrame) -> bool:
+    """Check if DoS has ended (T1 values varying again)."""
+    if len(df) < WINDOW_SIZE:
         return False
-    t1 = df['T1'].iloc[-3:].values
-    return abs(t1[-1] - t1[-2]) > noise_threshold and abs(t1[-1] - t1[-3]) > noise_threshold
-
-
-def GuardAlgo(df: pd.DataFrame) -> str:
-    """
-    Guard algorithm executed during a DoS attack.
-    Uses biased median cycle times to maintain pump cycling.
     
-    Returns: 'open' or 'closed' (no skip mechanism needed with v0.5.1)
+    window = df['T1'].iloc[-WINDOW_SIZE:]
+    variation = window.max() - window.min()
+    # Need significant variation to confirm recovery
+    return variation > NOISE_THRESHOLD * 2
+
+
+# ============== Control Logic ==============
+
+def normal_control(t1_level, df: pd.DataFrame) -> str:
     """
-    state_data = read_state_file()
-
-    if state_data is None or state_data == 'Safe':
-        print("New DoS event detected. Initializing guard state.")
-        dos_mask = compute_DoS_mask(df)
-        median_on, median_off = get_median_cycles(df, dos_mask)
-
-        last_cycle_duration = count_interrupted_cycle_duration(df)
-        last_cycle_state = df['P1'].iloc[-1]
-
-        initial_state_str = 'open' if last_cycle_state == 1 else 'closed'
-        target_duration = median_on if initial_state_str == 'open' else median_off
-        remaining = max(0, int(round(target_duration - last_cycle_duration)))
-
-        curr_state = initial_state_str
-        progress = last_cycle_duration
-
-        print(f"Pump was {curr_state} for {last_cycle_duration} ticks. Biased median target is {target_duration}. "
-              f"ADJUSTED: Will run for {remaining} more ticks.")
-    else:
-        remaining, curr_state, progress = state_data
-        dos_mask = compute_DoS_mask(df)
-        median_on, median_off = get_median_cycles(df, dos_mask)
-
-    if remaining > 0:
-        remaining -= 1
-        progress += 1
-        print(f"Guard Action: P1 remains {curr_state}. Remaining ticks: {remaining}, Total progress: {progress}")
-    else:
-        curr_state = 'open' if curr_state == 'closed' else 'closed'
-        new_duration = median_on if curr_state == 'open' else median_off
-        remaining = new_duration - 1
-        progress = 1
-        print(f"Guard Action: Switching P1 to {curr_state}. New biased cycle duration: {new_duration}. Progress: {progress}")
-
-    write_state_file(remaining, curr_state, progress)
-    return curr_state  # No skip flag - only one control per actuator now
-
-
-def NormalControl(cache_dict: pd.Series, df: pd.DataFrame) -> str:
+    Normal sensor-based control.
+    - T1 < 6.0: Turn ON
+    - T1 > 7.0: Turn OFF
+    - In between: Maintain current state
     """
-    Normal sensor-based pump control when no attack is detected.
-    Replicates the original INP rule logic:
-      - LINK P1 OPEN IF NODE T1 BELOW 6
-      - LINK P1 CLOSED IF NODE T1 ABOVE 7
-    
-    Returns: 'open', 'closed', or maintains current state in hysteresis zone
-    """
-    t1_level = cache_dict.get('T1', None)
-    
-    # If T1 is not available, maintain current state
     if t1_level is None or pd.isna(t1_level):
-        print(f"NormalControl: T1 not available, maintaining current state")
-        return get_last_pump_state(df)
+        # No sensor data - maintain current state
+        if df.empty or 'P1' not in df.columns:
+            return 'open'
+        return 'open' if df['P1'].iloc[-1] == 1 else 'closed'
     
-    if t1_level < T1_LOW_THRESHOLD:
-        print(f"NormalControl: T1={t1_level:.2f}m < {T1_LOW_THRESHOLD}m → P1 OPEN")
+    if t1_level < T1_LOW:
+        print(f"NormalControl: T1={t1_level:.2f}m < {T1_LOW}m → OPEN")
         return 'open'
-    elif t1_level > T1_HIGH_THRESHOLD:
-        print(f"NormalControl: T1={t1_level:.2f}m > {T1_HIGH_THRESHOLD}m → P1 CLOSED")
+    elif t1_level > T1_HIGH:
+        print(f"NormalControl: T1={t1_level:.2f}m > {T1_HIGH}m → CLOSED")
         return 'closed'
     else:
-        # In hysteresis zone - maintain current state
-        current_state = get_last_pump_state(df)
-        print(f"NormalControl: T1={t1_level:.2f}m in hysteresis zone [{T1_LOW_THRESHOLD}-{T1_HIGH_THRESHOLD}] → P1 remains {current_state}")
-        return current_state
+        # Hysteresis zone - maintain current state
+        if df.empty or 'P1' not in df.columns:
+            return 'open'
+        current = 'open' if df['P1'].iloc[-1] == 1 else 'closed'
+        print(f"NormalControl: T1={t1_level:.2f}m in [{T1_LOW}-{T1_HIGH}] → maintain {current}")
+        return current
 
+
+def guard_control(df: pd.DataFrame) -> str:
+    """
+    Guard control during DoS attack.
+    Uses median cycle times to maintain pump operation.
+    """
+    state = read_state()
+    
+    if state is None:
+        # First time entering guard mode
+        print("DoS detected! Entering guard mode.")
+        
+        # Calculate medians from clean historical data
+        median_on, median_off = calculate_medians(df)
+        
+        # Get current pump state and how long it's been running
+        current_pump, current_duration = get_current_cycle_duration(df)
+        current_state = 'open' if current_pump == 1 else 'closed'
+        
+        # Calculate how much longer to continue current cycle
+        target = median_on if current_state == 'open' else median_off
+        remaining = max(0, target - current_duration)
+        
+        print(f"Pump was {current_state} for {current_duration} iters. "
+              f"Target={target}. Will continue for {remaining} more iters.")
+        
+        write_state(remaining, current_state, median_on, median_off)
+        return current_state
+    
+    else:
+        # Already in guard mode - continue cycling
+        remaining = state['remaining']
+        current_state = state['state']
+        median_on = state['median_on']
+        median_off = state['median_off']
+        
+        if remaining > 0:
+            # Continue current state
+            remaining -= 1
+            print(f"Guard: P1 {current_state}, {remaining} iters remaining")
+            write_state(remaining, current_state, median_on, median_off)
+            return current_state
+        else:
+            # Time to switch!
+            new_state = 'closed' if current_state == 'open' else 'open'
+            new_duration = median_on if new_state == 'open' else median_off
+            remaining = new_duration - 1  # -1 because this iteration counts
+            
+            print(f"Guard: Switching P1 to {new_state} for {new_duration} iters")
+            write_state(remaining, new_state, median_on, median_off)
+            return new_state
+
+
+# ============== Main Entry Point ==============
 
 def AlgoRun(cache_dict: pd.Series):
     """
-    Main entry point for the algorithm on each SCADA iteration.
+    Main algorithm entry point.
     
-    With v0.5.1 (no INP rules for P1):
-    - Algorithm has FULL control of P1
-    - Returns 'open' or 'closed' directly (no 'rule' fallback)
-    - No skip mechanism needed (single synthetic control)
-    
-    Logic:
-    1. Save current SCADA data to CSV for history
-    2. Check if DoS attack is in progress
-    3. If DoS: Use guard algorithm (median cycle times)
-    4. If normal: Use sensor-based control (T1 thresholds)
+    1. Save current data to history
+    2. Check if DoS is active
+    3. If DoS: Use median-based cycling
+    4. If normal: Use sensor-based control
     """
-    # Save current data to CSV
-    update_csv_with_cache(cache_dict)
+    # Save to history
+    save_to_csv(cache_dict)
+    df = load_csv()
     
-    try:
-        df = get_csv_pointer()
-    except FileNotFoundError:
-        # First iteration - no history yet
-        df = pd.DataFrame()
+    # Get current T1 value
+    t1 = cache_dict.get('T1', None)
     
-    # Check for teardown (recovery from DoS)
-    if os.path.exists(STATE_FILE) and len(df) >= 3 and CheckForTeardown(df):
-        print("Teardown detected. Resetting state to Safe.")
-        write_safe_state()
+    # Check if in guard mode
+    in_guard = read_state() is not None
     
-    # Check for DoS attack
-    if CheckForDoSAttack(df):
-        # DoS detected - use guard algorithm
-        return GuardAlgo(df)
+    # Check DoS status
+    dos_active = is_dos_active(df)
+    
+    if dos_active:
+        # DoS attack in progress - use guard control
+        return guard_control(df)
     else:
-        # Normal operation - ensure state is Safe
-        state_content = read_state_file()
-        if state_content not in [None, 'Safe']:
-            print("DoS event ended. Resetting state to Safe.")
-            write_safe_state()
+        # No DoS detected
+        if in_guard:
+            # Was in guard mode - check if really recovered
+            if is_dos_ended(df):
+                print("DoS ended. Returning to normal control.")
+                clear_state()
+            else:
+                # Not sure yet - stay in guard mode
+                print("DoS may have ended, but staying in guard mode for safety.")
+                return guard_control(df)
         
-        # Use sensor-based control
-        return NormalControl(cache_dict, df)
+        # Normal operation
+        return normal_control(t1, df)
