@@ -1,5 +1,5 @@
 [TITLE]
-Anytown master file for rl-wds
+EdenTown SCADA Case
 
 [JUNCTIONS]
 ;ID              	Elev        	Demand      	Pattern         
@@ -58,20 +58,20 @@ Anytown master file for rl-wds
 
 [CURVES]
 ;ID              	X-Value     	Y-Value
-;PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: ID              	X-Value     	Y-Value
- H1              	0.0000      	85.440      
- H1              	550.26000   	75.000      
- H1              	1200.52000  	70.296      
- H1              	1400.7800   	65.104      
- H1              	2200.0400   	60.169      
- H1              	2900.0000   	0.          
-;PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: 
- E1              	0.0000      	0.          
- E1              	454.26000   	.50         
- E1              	908.52000   	.65         
- E1              	1362.7800   	.55         
- E1              	1817.0400   	.40         
- E1              	2900.0000   	0.          
+ H1              	0.0000      	92.00
+ H1              	400.0000    	91.00
+ H1              	800.0000    	87.00
+ H1              	1200.0000   	80.00
+ H1              	1600.0000   	71.00
+ H1              	2000.0000   	59.00
+ H1              	2400.0000   	45.00
+ E1              	0.0000      	0.00
+ E1              	400.0000    	0.55
+ E1              	800.0000    	0.70
+ E1              	1200.0000   	0.78
+ E1              	1600.0000   	0.75
+ E1              	2000.0000   	0.65
+ E1              	2400.0000   	0.50          
 
 [CONTROLS]
 LINK   P2  OPEN    IF NODE T2                BELOW    3
