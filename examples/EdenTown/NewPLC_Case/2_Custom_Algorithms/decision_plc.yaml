@@ -5,18 +5,18 @@
 - name: PLC2
   actuators:
     - name: V5
-      decision_maker: PLCAlgos/V5_Algo.py
+      decision_maker: examples/EdenTown/NewPLC_Case/2_Custom_Algorithms/PLCAlgos/V5_Algo.py
       dependents: [T1, J5]  # Sensors needed by the algorithm
 
 - name: PLC3
   actuators:
     - name: V4
-      decision_maker: PLCAlgos/V4_Algo.py
+      decision_maker: examples/EdenTown/NewPLC_Case/2_Custom_Algorithms/PLCAlgos/V4_Algo.py
       dependents: [T2, J4]  # Sensors needed by the algorithm
 
 - name: PLC4
   actuators:
     - name: P1
-      decision_maker: PLCAlgos/P1_Algo.py
+      decision_maker: examples/EdenTown/NewPLC_Case/2_Custom_Algorithms/PLCAlgos/P1_Algo.py
       dependents: [J1, P1F]  # Sensors needed by the algorithm
 
