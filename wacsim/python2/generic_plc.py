@@ -502,11 +502,11 @@ class GenericPLC(BasePLC):
                             self.logger.debug(f'PLC {self.intermediate_plc["name"]} executing custom algorithm for actuator {control.actuator} (script: {Action})')
                             # Load custom algorithm module (cached for performance)
                             if Action not in self._module_cache:
-                                ScriptName = Action.split('/')[-1]
-                                spec = importlib.util.spec_from_file_location(ScriptName, Action)
-                                module = importlib.util.module_from_spec(spec)
-                                sys.modules[ScriptName] = module
-                                spec.loader.exec_module(module)
+                            ScriptName = Action.split('/')[-1]
+                            spec = importlib.util.spec_from_file_location(ScriptName, Action)
+                            module = importlib.util.module_from_spec(spec)
+                            sys.modules[ScriptName] = module
+                            spec.loader.exec_module(module)
                                 self._module_cache[Action] = module
                             else:
                                 module = self._module_cache[Action]
@@ -555,11 +555,11 @@ class GenericPLC(BasePLC):
                             self.logger.debug(f'PLC {self.intermediate_plc["name"]} executing custom algorithm for actuator {control.actuator} (script: {HybridAction})')
                             # Load custom algorithm module (cached for performance)
                             if HybridAction not in self._module_cache:
-                                ScriptName = HybridAction.split('/')[-1]
-                                spec = importlib.util.spec_from_file_location(ScriptName, HybridAction)
-                                module = importlib.util.module_from_spec(spec)
-                                sys.modules[ScriptName] = module
-                                spec.loader.exec_module(module)
+                            ScriptName = HybridAction.split('/')[-1]
+                            spec = importlib.util.spec_from_file_location(ScriptName, HybridAction)
+                            module = importlib.util.module_from_spec(spec)
+                            sys.modules[ScriptName] = module
+                            spec.loader.exec_module(module)
                                 self._module_cache[HybridAction] = module
                             else:
                                 module = self._module_cache[HybridAction]
