@@ -127,7 +127,7 @@ try:
                      global_max_time + timedelta(seconds=bin_size),
                      timedelta(seconds=bin_size)).astype(datetime)
 
-    fig, axes = plt.subplots(nrows=2, ncols=3, sharex=True, sharey=False, figsize=(12, 8))
+    fig, axes = plt.subplots(nrows=2, ncols=3, sharex=True, sharey=False, figsize=(12, 6))
     # Layout: PLCs on left/middle, SCADA and Attacker on right
     # [0,0] PLC1    [0,1] PLC3    [0,2] SCADA
     # [1,0] PLC2    [1,1] PLC4    [1,2] Attacker
