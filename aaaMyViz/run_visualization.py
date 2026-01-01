@@ -95,9 +95,9 @@ try:
         return packet_times
 
     # Load pcap files from DoS No Guard scenario
-    file_path1 = '../examples/EdenTown/Scada_Case/2_DoS_NoGuard/outputNew2/PLC3-eth0.pcap'
-    file_path2 = '../examples/EdenTown/Scada_Case/2_DoS_NoGuard/outputNew2/plc3Attac-eth0.pcap'
-    file_path3 = '../examples/EdenTown/Scada_Case/2_DoS_NoGuard/outputNew2/scada-eth0.pcap'
+    file_path1 = '../examples/EdenTown/Scada_Case/3_DoS_WithGuard/outputNew3/PLC3-eth0.pcap'
+    file_path2 = '../examples/EdenTown/Scada_Case/3_DoS_WithGuard/outputNew3/plc3Attac-eth0.pcap'
+    file_path3 = '../examples/EdenTown/Scada_Case/3_DoS_WithGuard/outputNew3/scada-eth0.pcap'
 
     packet_times1 = process_pcap_by_time(file_path1)
     packet_times2 = process_pcap_by_time(file_path2)
@@ -269,8 +269,8 @@ except Exception as e:
 print("\n[3/4] Generating DoS WITH Guard - Ground Truth plot...")
 
 try:
-    ground_truth_guard_df = pd.read_csv('../examples/EdenTown/Scada_Case/3_DoS_WithGuard/outputNew2/ground_truth.csv')
-    scada_guard_df = pd.read_csv('../examples/EdenTown/Scada_Case/3_DoS_WithGuard/outputNew2/scada_values.csv')
+    ground_truth_guard_df = pd.read_csv('../examples/EdenTown/Scada_Case/3_DoS_WithGuard/outputNew3/ground_truth.csv')
+    scada_guard_df = pd.read_csv('../examples/EdenTown/Scada_Case/3_DoS_WithGuard/outputNew3/scada_values.csv')
     ground_truth_guard_df = ground_truth_guard_df.drop(0)
 
     attack_intervals_guard = find_attack_intervals(ground_truth_guard_df, 'plc2AttackerUnit')
@@ -382,4 +382,6 @@ print("  • DoS_NoGuard_GroundTruth.png     - Physical layer without guard")
 print("  • DoS_NoGuard_ScadaView.png       - What SCADA sees (frozen data!)")
 print("  • DoS_WithGuard_GroundTruth.png   - Physical layer WITH guard")
 print("  • DoS_WithGuard_ScadaView.png     - SCADA view WITH guard")
+print()
+
 print()
