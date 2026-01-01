@@ -255,7 +255,7 @@ try:
     adjust_ylim(axes[2], ['J1_LEVEL', 'J2_LEVEL'], ground_truth_df, min_override=50)
     add_legend_top_center(axes[2])
 
-    plt.subplots_adjust(hspace=0.5)
+    plt.subplots_adjust(hspace=0.6)
     plt.savefig('ScadaCaseNew/DoS_NoGuard_GroundTruth.png', dpi=300, bbox_inches='tight')
     plt.close()
     print("   ✓ Saved: ScadaCaseNew/DoS_NoGuard_GroundTruth.png")
@@ -305,7 +305,7 @@ try:
     adjust_ylim(axes2[2], ['J1', 'J2'], scada_df, min_override=50)
     add_legend_top_center(axes2[2])
 
-    plt.subplots_adjust(hspace=0.5)
+    plt.subplots_adjust(hspace=0.6)
     plt.savefig('ScadaCaseNew/DoS_NoGuard_ScadaView.png', dpi=300, bbox_inches='tight')
     plt.close()
     print("   ✓ Saved: ScadaCaseNew/DoS_NoGuard_ScadaView.png")
@@ -362,7 +362,7 @@ try:
     adjust_ylim(axes3[2], ['J1_LEVEL', 'J2_LEVEL'], ground_truth_guard_df, min_override=50)
     add_legend_top_center(axes3[2])
 
-    plt.subplots_adjust(hspace=0.5)
+    plt.subplots_adjust(hspace=0.6)
     plt.savefig('ScadaCaseNew/DoS_WithGuard_GroundTruth.png', dpi=300, bbox_inches='tight')
     plt.close()
     print("   ✓ Saved: ScadaCaseNew/DoS_WithGuard_GroundTruth.png")
@@ -412,7 +412,7 @@ try:
     adjust_ylim(axes4[2], ['J1', 'J2'], scada_guard_df, min_override=50)
     add_legend_top_center(axes4[2])
 
-    plt.subplots_adjust(hspace=0.5)
+    plt.subplots_adjust(hspace=0.6)
     plt.savefig('ScadaCaseNew/DoS_WithGuard_ScadaView.png', dpi=300, bbox_inches='tight')
     plt.close()
     print("   ✓ Saved: ScadaCaseNew/DoS_WithGuard_ScadaView.png")
