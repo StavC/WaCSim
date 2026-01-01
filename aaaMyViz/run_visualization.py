@@ -140,31 +140,29 @@ try:
     def plot_binned_times_detailed(ax, packet_times, title):
         bin_centers = [bin + timedelta(seconds=bin_size / 2) for bin in bins[:-1]]
         
-        # Collect data for stacked area chart
-        data_series = {}
-        labels_order = ["ARP", "TCP-DATA", "TCP-SYN"]  # Stack order: bottom to top
+        # Line styles for each packet type
+        line_styles = {
+            "TCP-SYN": {"color": "#E63946", "linestyle": "-", "linewidth": 2, "marker": "o", "markersize": 3},
+            "TCP-DATA": {"color": "#2A9D8F", "linestyle": "-", "linewidth": 2, "marker": "s", "markersize": 3},
+            "ARP": {"color": "#457B9D", "linestyle": "-", "linewidth": 2, "marker": "^", "markersize": 3},
+        }
+        
+        labels_order = ["TCP-SYN", "TCP-DATA", "ARP"]
         
         for ptype in labels_order:
             if ptype in packet_times:
                 binned_counts, _ = np.histogram(packet_times[ptype], bins=bins)
-                data_series[ptype] = binned_counts
-            else:
-                data_series[ptype] = np.zeros(len(bin_centers))
-        
-        # Create stacked area chart
-        y_stack = np.zeros(len(bin_centers))
-        
-        for ptype in labels_order:
-            if ptype in packet_times and np.sum(data_series[ptype]) > 0:
-                label_name = ptype.replace("TCP-", "TCP ")
-                ax.fill_between(bin_centers, y_stack, y_stack + data_series[ptype], 
-                               alpha=0.7, label=label_name, color=colors[ptype], 
-                               linewidth=0.5, edgecolor='white')
-                y_stack = y_stack + data_series[ptype]
+                if np.sum(binned_counts) > 0:
+                    label_name = ptype.replace("TCP-", "TCP ")
+                    style = line_styles[ptype]
+                    ax.plot(bin_centers, binned_counts, label=label_name,
+                           color=style["color"], linestyle=style["linestyle"], 
+                           linewidth=style["linewidth"], marker=style["marker"],
+                           markersize=style["markersize"], markevery=5)
 
         ax.set_title(title, fontsize=14, fontweight="bold", pad=8)
         ax.set_ylabel("Packet Count", fontsize=12)
-        ax.legend(loc="upper center", ncol=3, frameon=True, fancybox=True, framealpha=0.95, fontsize=11)
+        ax.legend(loc="upper center", ncol=3, frameon=True, fancybox=True, framealpha=0.95, fontsize=10)
         ax.set_facecolor('white')
         ax.grid(True, alpha=0.3)
         ax.tick_params(axis='both', labelsize=11)
