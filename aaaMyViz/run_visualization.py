@@ -102,17 +102,19 @@ try:
 
         return packet_times
 
-    # Load pcap files - PLC1, PLC2, Attacker, SCADA
+    # Load pcap files - All PLCs, Attacker, SCADA
     base_path = '../examples/EdenTown/Scada_Case/3_DoS_WithGuard/outputNew3/'
     
     packet_times_plc1 = process_pcap_detailed(base_path + 'PLC1-eth0.pcap')
     packet_times_plc2 = process_pcap_detailed(base_path + 'PLC2-eth0.pcap')
+    packet_times_plc3 = process_pcap_detailed(base_path + 'PLC3-eth0.pcap')
+    packet_times_plc4 = process_pcap_detailed(base_path + 'PLC4-eth0.pcap')
     packet_times_attacker = process_pcap_detailed(base_path + 'plc2Attac-eth0.pcap')
     packet_times_scada = process_pcap_detailed(base_path + 'scada-eth0.pcap')
 
     # Gather all timestamps to determine global min and max
     all_times = []
-    for pt_dict in [packet_times_plc1, packet_times_plc2, packet_times_attacker, packet_times_scada]:
+    for pt_dict in [packet_times_plc1, packet_times_plc2, packet_times_plc3, packet_times_plc4, packet_times_attacker, packet_times_scada]:
         for times in pt_dict.values():
             all_times.extend(times)
 
@@ -125,10 +127,10 @@ try:
                      global_max_time + timedelta(seconds=bin_size),
                      timedelta(seconds=bin_size)).astype(datetime)
 
-    fig, axes = plt.subplots(nrows=2, ncols=2, sharex=True, sharey=False, figsize=(8, 6))
-    # Layout: PLCs on left, SCADA and Attacker on right
-    # [0,0] PLC1    [0,1] SCADA
-    # [1,0] PLC2    [1,1] Attacker
+    fig, axes = plt.subplots(nrows=2, ncols=3, sharex=True, sharey=False, figsize=(12, 6))
+    # Layout: PLCs on left/middle, SCADA and Attacker on right
+    # [0,0] PLC1    [0,1] PLC3    [0,2] SCADA
+    # [1,0] PLC2    [1,1] PLC4    [1,2] Attacker
 
     # Color palette - distinct and professional
     colors = {
@@ -169,15 +171,18 @@ try:
         ax.set_xlim(bin_centers[0], bin_centers[-1])
 
 
-    # Plot in 2x2 grid: PLCs on left, SCADA/Attacker on right
-    plot_binned_times_detailed(axes[0, 0], packet_times_plc1, "PLC1 (Not Attacked)")
+    # Plot in 2x3 grid: PLCs on left/middle, SCADA/Attacker on right
+    plot_binned_times_detailed(axes[0, 0], packet_times_plc1, "PLC1")
     plot_binned_times_detailed(axes[1, 0], packet_times_plc2, "PLC2 (Attacked)")
-    plot_binned_times_detailed(axes[0, 1], packet_times_scada, "SCADA")
-    plot_binned_times_detailed(axes[1, 1], packet_times_attacker, "Attacker")
+    plot_binned_times_detailed(axes[0, 1], packet_times_plc4, "PLC4")
+    plot_binned_times_detailed(axes[1, 1], packet_times_plc3, "PLC3 (Attacked)")
+    plot_binned_times_detailed(axes[0, 2], packet_times_scada, "SCADA")
+    plot_binned_times_detailed(axes[1, 2], packet_times_attacker, "Attacker")
 
     # Add x-axis labels to bottom row only
-    axes[1, 0].set_xlabel("Time", fontsize=14, fontweight='bold')
-    axes[1, 1].set_xlabel("Time", fontsize=14, fontweight='bold')
+    axes[1, 0].set_xlabel("Time", fontsize=12, fontweight='bold')
+    axes[1, 1].set_xlabel("Time", fontsize=12, fontweight='bold')
+    axes[1, 2].set_xlabel("Time", fontsize=12, fontweight='bold')
     
     # Remove x-axis tick labels (keep just "Time" label)
     for ax in axes.flat:
