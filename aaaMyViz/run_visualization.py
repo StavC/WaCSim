@@ -53,7 +53,8 @@ def adjust_ylim(ax, columns, df, min_override=None, legend_space=0.25):
 def add_legend_top_center(ax):
     """Add legend at top center, inside the plot area but above data."""
     ax.legend(loc='upper center', ncol=4, frameon=True, fancybox=True, 
-              framealpha=0.9, fontsize=9)
+              framealpha=0.9, fontsize=11)
+    ax.tick_params(axis='both', labelsize=11)
 
 # ============================================
 # 0. Cyber Layer - Packet Analysis (PCAP)
@@ -61,30 +62,37 @@ def add_legend_top_center(ax):
 print("\n[0/4] Generating Cyber Layer - Packet Analysis plot...")
 
 try:
-    from scapy.all import rdpcap
+    from scapy.all import rdpcap, TCP
     import seaborn as sns
     sns.set_theme(style="whitegrid")
     
-    def classify_packet(packet):
-        """Classify packet type."""
+    def classify_packet_detailed(packet):
+        """Classify packet with TCP flag details."""
         if packet.haslayer("ARP"):
             return "ARP"
+        elif packet.haslayer("TCP"):
+            tcp = packet["TCP"]
+            flags = str(tcp.flags)
+            if 'S' in flags and 'A' not in flags:
+                return "TCP-SYN"  # SYN only (connection attempt)
+            elif 'P' in flags:
+                return "TCP-DATA"  # Push flag = data transfer
+            else:
+                return "TCP-OTHER"
         elif packet.haslayer("ICMP"):
             return "ICMP"
-        elif packet.haslayer("TCP"):
-            return "TCP"
         elif packet.haslayer("UDP"):
             return "UDP"
         else:
             return "Other"
 
-    def process_pcap_by_time(file_path):
-        """Process pcap file and extract timestamps by packet type."""
+    def process_pcap_detailed(file_path):
+        """Process pcap file with detailed TCP classification."""
         packets = rdpcap(file_path)
         packet_times = {}
 
         for packet in packets:
-            packet_type = classify_packet(packet)
+            packet_type = classify_packet_detailed(packet)
             packet_time = datetime.fromtimestamp(float(packet.time))
 
             if packet_type not in packet_times:
@@ -94,22 +102,21 @@ try:
 
         return packet_times
 
-    # Load pcap files from DoS No Guard scenario
-    file_path1 = '../examples/EdenTown/Scada_Case/3_DoS_WithGuard/outputNew3/PLC3-eth0.pcap'
-    file_path2 = '../examples/EdenTown/Scada_Case/3_DoS_WithGuard/outputNew3/plc3Attac-eth0.pcap'
-    file_path3 = '../examples/EdenTown/Scada_Case/3_DoS_WithGuard/outputNew3/scada-eth0.pcap'
-
-    packet_times1 = process_pcap_by_time(file_path1)
-    packet_times2 = process_pcap_by_time(file_path2)
-    packet_times3 = process_pcap_by_time(file_path3)
+    # Load pcap files - PLC1, PLC2, Attacker, SCADA
+    base_path = '../examples/EdenTown/Scada_Case/3_DoS_WithGuard/outputNew3/'
+    
+    packet_times_plc1 = process_pcap_detailed(base_path + 'PLC1-eth0.pcap')
+    packet_times_plc2 = process_pcap_detailed(base_path + 'PLC2-eth0.pcap')
+    packet_times_attacker = process_pcap_detailed(base_path + 'plc2Attac-eth0.pcap')
+    packet_times_scada = process_pcap_detailed(base_path + 'scada-eth0.pcap')
 
     # Gather all timestamps to determine global min and max
     all_times = []
-    for pt_dict in [packet_times1, packet_times2, packet_times3]:
+    for pt_dict in [packet_times_plc1, packet_times_plc2, packet_times_attacker, packet_times_scada]:
         for times in pt_dict.values():
             all_times.extend(times)
 
-    bin_size = 5  # seconds
+    bin_size = 15  # seconds (larger = smoother)
     global_min_time = min(all_times)
     global_max_time = max(all_times)
 
@@ -118,34 +125,74 @@ try:
                      global_max_time + timedelta(seconds=bin_size),
                      timedelta(seconds=bin_size)).astype(datetime)
 
-    fig, axes = plt.subplots(nrows=3, ncols=1, sharex=True, figsize=(10, 8))
-    titles = ("Targeted PLC (PLC3)", "Malicious Attacker Component", "SCADA")
+    fig, axes = plt.subplots(nrows=2, ncols=2, sharex=True, sharey=False, figsize=(14, 7))
+    # Layout: PLCs on left, SCADA and Attacker on right
+    # [0,0] PLC1    [0,1] SCADA
+    # [1,0] PLC2    [1,1] Attacker
 
-    def plot_binned_times(ax, packet_times, title):
-        for packet_type, times in packet_times.items():
-            binned_counts, _ = np.histogram(times, bins=bins)
-            bin_centers = [bin + timedelta(seconds=bin_size / 2) for bin in bins[:-1]]
+    # Color palette - distinct and professional
+    colors = {
+        "TCP-SYN": "#E63946",   # Vibrant red for attack traffic
+        "TCP-DATA": "#2A9D8F", # Teal for normal data
+        "ARP": "#457B9D",       # Steel blue for ARP
+    }
 
-            if packet_type == "ARP":
-                ax.plot(bin_centers, binned_counts, label=packet_type, linestyle='-', linewidth=2, color='#1E5AA8')
-            if packet_type == "TCP":
-                ax.plot(bin_centers, binned_counts, label=packet_type, linestyle='-', linewidth=3, color='#D95F02')
+    def plot_binned_times_detailed(ax, packet_times, title):
+        bin_centers = [bin + timedelta(seconds=bin_size / 2) for bin in bins[:-1]]
+        
+        # Collect data for stacked area chart
+        data_series = {}
+        labels_order = ["ARP", "TCP-DATA", "TCP-SYN"]  # Stack order: bottom to top
+        
+        for ptype in labels_order:
+            if ptype in packet_times:
+                binned_counts, _ = np.histogram(packet_times[ptype], bins=bins)
+                data_series[ptype] = binned_counts
+            else:
+                data_series[ptype] = np.zeros(len(bin_centers))
+        
+        # Create stacked area chart
+        y_stack = np.zeros(len(bin_centers))
+        
+        for ptype in labels_order:
+            if ptype in packet_times and np.sum(data_series[ptype]) > 0:
+                label_name = ptype.replace("TCP-", "TCP ")
+                ax.fill_between(bin_centers, y_stack, y_stack + data_series[ptype], 
+                               alpha=0.7, label=label_name, color=colors[ptype], 
+                               linewidth=0.5, edgecolor='white')
+                y_stack = y_stack + data_series[ptype]
 
-        ax.set_title(title, fontsize=12, fontweight='bold')
-        ax.set_ylabel("Packet Count")
-        ax.legend(loc='upper center', ncol=2, frameon=True, fancybox=True, framealpha=0.9, fontsize=9)
+        ax.set_title(title, fontsize=14, fontweight="bold", pad=8)
+        ax.set_ylabel("Packet Count", fontsize=12)
+        ax.legend(loc="upper center", ncol=3, frameon=True, fancybox=True, framealpha=0.95, fontsize=11)
+        ax.set_facecolor('white')
         ax.grid(True, alpha=0.3)
+        ax.tick_params(axis='both', labelsize=11)
+        ax.set_xlim(bin_centers[0], bin_centers[-1])
 
-    plot_binned_times(axes[0], packet_times1, titles[0])
-    plot_binned_times(axes[1], packet_times2, titles[1])
-    plot_binned_times(axes[2], packet_times3, titles[2])
 
-    axes[2].set_xlabel("Time")
-    axes[0].set_xticks([])
+    # Plot in 2x2 grid: PLCs on left, SCADA/Attacker on right
+    plot_binned_times_detailed(axes[0, 0], packet_times_plc1, "PLC1 (Not Attacked)")
+    plot_binned_times_detailed(axes[1, 0], packet_times_plc2, "PLC2 (Attacked)")
+    plot_binned_times_detailed(axes[0, 1], packet_times_scada, "SCADA")
+    plot_binned_times_detailed(axes[1, 1], packet_times_attacker, "Attacker")
 
-    fig.autofmt_xdate()
+    # Add x-axis labels to bottom row only
+    axes[1, 0].set_xlabel("Time", fontsize=14, fontweight='bold')
+    axes[1, 1].set_xlabel("Time", fontsize=14, fontweight='bold')
+    
+    # Remove x-axis tick labels (keep just "Time" label)
+    for ax in axes.flat:
+        ax.set_xticklabels([])
+    
+    # Add subtle spines
+    for ax in axes.flat:
+        for spine in ax.spines.values():
+            spine.set_linewidth(0.5)
+            spine.set_color('#CCCCCC')
+
     plt.tight_layout()
-    plt.savefig('ScadaCaseNew/CyberLayer_PacketAnalysis.png', dpi=150, bbox_inches='tight')
+    plt.savefig('ScadaCaseNew/CyberLayer_PacketAnalysis.png', dpi=300, bbox_inches='tight')
     plt.close()
     print("   ✓ Saved: ScadaCaseNew/CyberLayer_PacketAnalysis.png")
 
@@ -169,15 +216,15 @@ try:
     attack_intervals = find_attack_intervals(ground_truth_df, 'plc2AttackerUnit')
     attack_start, attack_end = attack_intervals[0]
 
-    fig, axes = plt.subplots(3, 1, figsize=(10, 8), gridspec_kw={'height_ratios': [1, 1, 1]})
+    fig, axes = plt.subplots(3, 1, figsize=(14, 10), gridspec_kw={'height_ratios': [1, 1, 1]})
 
     # Tank Levels
     axes[0].plot(ground_truth_df['iteration'], ground_truth_df['T1_LEVEL'], label='T1', color='green', linewidth=2)
     axes[0].plot(ground_truth_df['iteration'], ground_truth_df['T2_LEVEL'], label='T2', color='green', linestyle='--', linewidth=2)
     axes[0].axvline(x=attack_start, color='red', linestyle='--', linewidth=2, label='Attack Start')
     axes[0].axvline(x=attack_end, color='red', linestyle=':', linewidth=2, label='Attack End')
-    axes[0].set_title("Tank Levels", fontsize=12, fontweight='bold')
-    axes[0].set_ylabel("Level (m)")
+    axes[0].set_title("Tank Levels", fontsize=14, fontweight='bold')
+    axes[0].set_ylabel("Level (m)", fontsize=12)
     axes[0].grid(True, alpha=0.3)
     adjust_ylim(axes[0], ['T1_LEVEL', 'T2_LEVEL'], ground_truth_df)
     add_legend_top_center(axes[0])
@@ -187,8 +234,8 @@ try:
     axes[1].plot(ground_truth_df['iteration'], ground_truth_df['P2_FLOW'], label='P2', color='magenta', linewidth=2)
     axes[1].axvline(x=attack_start, color='red', linestyle='--', linewidth=2, label='Attack Start')
     axes[1].axvline(x=attack_end, color='red', linestyle=':', linewidth=2, label='Attack End')
-    axes[1].set_title("Pump Flows", fontsize=12, fontweight='bold')
-    axes[1].set_ylabel("Flow (CMH)")
+    axes[1].set_title("Pump Flows", fontsize=14, fontweight='bold')
+    axes[1].set_ylabel("Flow (CMH)", fontsize=12)
     axes[1].grid(True, alpha=0.3)
     adjust_ylim(axes[1], ['P1_FLOW', 'P2_FLOW'], ground_truth_df)
     add_legend_top_center(axes[1])
@@ -198,15 +245,15 @@ try:
     axes[2].plot(ground_truth_df['iteration'], ground_truth_df['J2_LEVEL'], label='J2', color='darkorange', linestyle='--', linewidth=2)
     axes[2].axvline(x=attack_start, color='red', linestyle='--', linewidth=2, label='Attack Start')
     axes[2].axvline(x=attack_end, color='red', linestyle=':', linewidth=2, label='Attack End')
-    axes[2].set_title("Junction Pressures", fontsize=12, fontweight='bold')
-    axes[2].set_ylabel("Pressure (m)")
-    axes[2].set_xlabel("Time (steps)")
+    axes[2].set_title("Junction Pressures", fontsize=14, fontweight='bold')
+    axes[2].set_ylabel("Pressure (m)", fontsize=12)
+    axes[2].set_xlabel("Time (steps)", fontsize=12)
     axes[2].grid(True, alpha=0.3)
     adjust_ylim(axes[2], ['J1_LEVEL', 'J2_LEVEL'], ground_truth_df, min_override=50)
     add_legend_top_center(axes[2])
 
     plt.tight_layout()
-    plt.savefig('ScadaCaseNew/DoS_NoGuard_GroundTruth.png', dpi=150, bbox_inches='tight')
+    plt.savefig('ScadaCaseNew/DoS_NoGuard_GroundTruth.png', dpi=300, bbox_inches='tight')
     plt.close()
     print("   ✓ Saved: ScadaCaseNew/DoS_NoGuard_GroundTruth.png")
 
@@ -219,15 +266,15 @@ except Exception as e:
 print("\n[2/4] Generating DoS No Guard - SCADA View plot...")
 
 try:
-    fig2, axes2 = plt.subplots(3, 1, figsize=(10, 8), sharex=True)
+    fig2, axes2 = plt.subplots(3, 1, figsize=(14, 10), sharex=True)
 
     # Tank Levels
     axes2[0].plot(scada_df['iteration'], scada_df['T1'], label='T1', color='green', linewidth=2)
     axes2[0].plot(scada_df['iteration'], scada_df['T2'], label='T2', color='green', linestyle='--', linewidth=2)
     axes2[0].axvline(x=attack_start, color='red', linestyle='--', linewidth=2, label='Attack Start')
     axes2[0].axvline(x=attack_end, color='red', linestyle=':', linewidth=2, label='Attack End')
-    axes2[0].set_title("Tank Levels", fontsize=12, fontweight='bold')
-    axes2[0].set_ylabel("Level (m)")
+    axes2[0].set_title("Tank Levels", fontsize=14, fontweight='bold')
+    axes2[0].set_ylabel("Level (m)", fontsize=12)
     axes2[0].grid(True, alpha=0.3)
     adjust_ylim(axes2[0], ['T1', 'T2'], scada_df)
     add_legend_top_center(axes2[0])
@@ -237,8 +284,8 @@ try:
     axes2[1].plot(ground_truth_df['iteration'], ground_truth_df['P2_FLOW'], label='P2', color='magenta', linewidth=2)
     axes2[1].axvline(x=attack_start, color='red', linestyle='--', linewidth=2, label='Attack Start')
     axes2[1].axvline(x=attack_end, color='red', linestyle=':', linewidth=2, label='Attack End')
-    axes2[1].set_title("Pump Flows", fontsize=12, fontweight='bold')
-    axes2[1].set_ylabel("Flow (CMH)")
+    axes2[1].set_title("Pump Flows", fontsize=14, fontweight='bold')
+    axes2[1].set_ylabel("Flow (CMH)", fontsize=12)
     axes2[1].grid(True, alpha=0.3)
     adjust_ylim(axes2[1], ['P1_FLOW', 'P2_FLOW'], ground_truth_df)
     add_legend_top_center(axes2[1])
@@ -248,15 +295,15 @@ try:
     axes2[2].plot(scada_df['iteration'], scada_df['J2'], label='J2', color='darkorange', linestyle='--', linewidth=2)
     axes2[2].axvline(x=attack_start, color='red', linestyle='--', linewidth=2, label='Attack Start')
     axes2[2].axvline(x=attack_end, color='red', linestyle=':', linewidth=2, label='Attack End')
-    axes2[2].set_title("Junction Pressures", fontsize=12, fontweight='bold')
-    axes2[2].set_ylabel("Pressure (m)")
-    axes2[2].set_xlabel("Time (steps)")
+    axes2[2].set_title("Junction Pressures", fontsize=14, fontweight='bold')
+    axes2[2].set_ylabel("Pressure (m)", fontsize=12)
+    axes2[2].set_xlabel("Time (steps)", fontsize=12)
     axes2[2].grid(True, alpha=0.3)
     adjust_ylim(axes2[2], ['J1', 'J2'], scada_df, min_override=50)
     add_legend_top_center(axes2[2])
 
     plt.tight_layout()
-    plt.savefig('ScadaCaseNew/DoS_NoGuard_ScadaView.png', dpi=150, bbox_inches='tight')
+    plt.savefig('ScadaCaseNew/DoS_NoGuard_ScadaView.png', dpi=300, bbox_inches='tight')
     plt.close()
     print("   ✓ Saved: ScadaCaseNew/DoS_NoGuard_ScadaView.png")
 
@@ -276,15 +323,15 @@ try:
     attack_intervals_guard = find_attack_intervals(ground_truth_guard_df, 'plc2AttackerUnit')
     attack_start_guard, attack_end_guard = attack_intervals_guard[0]
 
-    fig3, axes3 = plt.subplots(3, 1, figsize=(10, 8), gridspec_kw={'height_ratios': [1, 1, 1]})
+    fig3, axes3 = plt.subplots(3, 1, figsize=(14, 10), gridspec_kw={'height_ratios': [1, 1, 1]})
 
     # Tank Levels
     axes3[0].plot(ground_truth_guard_df['iteration'], ground_truth_guard_df['T1_LEVEL'], label='T1', color='green', linewidth=2)
     axes3[0].plot(ground_truth_guard_df['iteration'], ground_truth_guard_df['T2_LEVEL'], label='T2', color='green', linestyle='--', linewidth=2)
     axes3[0].axvline(x=attack_start_guard, color='red', linestyle='--', linewidth=2, label='Attack Start')
     axes3[0].axvline(x=attack_end_guard, color='red', linestyle=':', linewidth=2, label='Attack End')
-    axes3[0].set_title("Tank Levels", fontsize=12, fontweight='bold')
-    axes3[0].set_ylabel("Level (m)")
+    axes3[0].set_title("Tank Levels", fontsize=14, fontweight='bold')
+    axes3[0].set_ylabel("Level (m)", fontsize=12)
     axes3[0].grid(True, alpha=0.3)
     adjust_ylim(axes3[0], ['T1_LEVEL', 'T2_LEVEL'], ground_truth_guard_df)
     add_legend_top_center(axes3[0])
@@ -294,8 +341,8 @@ try:
     axes3[1].plot(ground_truth_guard_df['iteration'], ground_truth_guard_df['P2_FLOW'], label='P2', color='magenta', linewidth=2)
     axes3[1].axvline(x=attack_start_guard, color='red', linestyle='--', linewidth=2, label='Attack Start')
     axes3[1].axvline(x=attack_end_guard, color='red', linestyle=':', linewidth=2, label='Attack End')
-    axes3[1].set_title("Pump Flows", fontsize=12, fontweight='bold')
-    axes3[1].set_ylabel("Flow (CMH)")
+    axes3[1].set_title("Pump Flows", fontsize=14, fontweight='bold')
+    axes3[1].set_ylabel("Flow (CMH)", fontsize=12)
     axes3[1].grid(True, alpha=0.3)
     adjust_ylim(axes3[1], ['P1_FLOW', 'P2_FLOW'], ground_truth_guard_df)
     add_legend_top_center(axes3[1])
@@ -305,15 +352,15 @@ try:
     axes3[2].plot(ground_truth_guard_df['iteration'], ground_truth_guard_df['J2_LEVEL'], label='J2', color='darkorange', linestyle='--', linewidth=2)
     axes3[2].axvline(x=attack_start_guard, color='red', linestyle='--', linewidth=2, label='Attack Start')
     axes3[2].axvline(x=attack_end_guard, color='red', linestyle=':', linewidth=2, label='Attack End')
-    axes3[2].set_title("Junction Pressures", fontsize=12, fontweight='bold')
-    axes3[2].set_ylabel("Pressure (m)")
-    axes3[2].set_xlabel("Time (steps)")
+    axes3[2].set_title("Junction Pressures", fontsize=14, fontweight='bold')
+    axes3[2].set_ylabel("Pressure (m)", fontsize=12)
+    axes3[2].set_xlabel("Time (steps)", fontsize=12)
     axes3[2].grid(True, alpha=0.3)
     adjust_ylim(axes3[2], ['J1_LEVEL', 'J2_LEVEL'], ground_truth_guard_df, min_override=50)
     add_legend_top_center(axes3[2])
 
     plt.tight_layout()
-    plt.savefig('ScadaCaseNew/DoS_WithGuard_GroundTruth.png', dpi=150, bbox_inches='tight')
+    plt.savefig('ScadaCaseNew/DoS_WithGuard_GroundTruth.png', dpi=300, bbox_inches='tight')
     plt.close()
     print("   ✓ Saved: ScadaCaseNew/DoS_WithGuard_GroundTruth.png")
 
@@ -326,15 +373,15 @@ except Exception as e:
 print("\n[4/4] Generating DoS WITH Guard - SCADA View plot...")
 
 try:
-    fig4, axes4 = plt.subplots(3, 1, figsize=(10, 8), sharex=True)
+    fig4, axes4 = plt.subplots(3, 1, figsize=(14, 10), sharex=True)
 
     # Tank Levels
     axes4[0].plot(scada_guard_df['iteration'], scada_guard_df['T1'], label='T1', color='green', linewidth=2)
     axes4[0].plot(scada_guard_df['iteration'], scada_guard_df['T2'], label='T2', color='green', linestyle='--', linewidth=2)
     axes4[0].axvline(x=attack_start_guard, color='red', linestyle='--', linewidth=2, label='Attack Start')
     axes4[0].axvline(x=attack_end_guard, color='red', linestyle=':', linewidth=2, label='Attack End')
-    axes4[0].set_title("Tank Levels", fontsize=12, fontweight='bold')
-    axes4[0].set_ylabel("Level (m)")
+    axes4[0].set_title("Tank Levels", fontsize=14, fontweight='bold')
+    axes4[0].set_ylabel("Level (m)", fontsize=12)
     axes4[0].grid(True, alpha=0.3)
     adjust_ylim(axes4[0], ['T1', 'T2'], scada_guard_df)
     add_legend_top_center(axes4[0])
@@ -344,8 +391,8 @@ try:
     axes4[1].plot(ground_truth_guard_df['iteration'], ground_truth_guard_df['P2_FLOW'], label='P2', color='magenta', linewidth=2)
     axes4[1].axvline(x=attack_start_guard, color='red', linestyle='--', linewidth=2, label='Attack Start')
     axes4[1].axvline(x=attack_end_guard, color='red', linestyle=':', linewidth=2, label='Attack End')
-    axes4[1].set_title("Pump Flows", fontsize=12, fontweight='bold')
-    axes4[1].set_ylabel("Flow (CMH)")
+    axes4[1].set_title("Pump Flows", fontsize=14, fontweight='bold')
+    axes4[1].set_ylabel("Flow (CMH)", fontsize=12)
     axes4[1].grid(True, alpha=0.3)
     adjust_ylim(axes4[1], ['P1_FLOW', 'P2_FLOW'], ground_truth_guard_df)
     add_legend_top_center(axes4[1])
@@ -355,15 +402,15 @@ try:
     axes4[2].plot(scada_guard_df['iteration'], scada_guard_df['J2'], label='J2', color='darkorange', linestyle='--', linewidth=2)
     axes4[2].axvline(x=attack_start_guard, color='red', linestyle='--', linewidth=2, label='Attack Start')
     axes4[2].axvline(x=attack_end_guard, color='red', linestyle=':', linewidth=2, label='Attack End')
-    axes4[2].set_title("Junction Pressures", fontsize=12, fontweight='bold')
-    axes4[2].set_ylabel("Pressure (m)")
-    axes4[2].set_xlabel("Time (steps)")
+    axes4[2].set_title("Junction Pressures", fontsize=14, fontweight='bold')
+    axes4[2].set_ylabel("Pressure (m)", fontsize=12)
+    axes4[2].set_xlabel("Time (steps)", fontsize=12)
     axes4[2].grid(True, alpha=0.3)
     adjust_ylim(axes4[2], ['J1', 'J2'], scada_guard_df, min_override=50)
     add_legend_top_center(axes4[2])
 
     plt.tight_layout()
-    plt.savefig('ScadaCaseNew/DoS_WithGuard_ScadaView.png', dpi=150, bbox_inches='tight')
+    plt.savefig('ScadaCaseNew/DoS_WithGuard_ScadaView.png', dpi=300, bbox_inches='tight')
     plt.close()
     print("   ✓ Saved: ScadaCaseNew/DoS_WithGuard_ScadaView.png")
 
