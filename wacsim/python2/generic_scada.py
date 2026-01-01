@@ -432,7 +432,7 @@ class GenericScada(BasePLC):
                         # This prevents None from overwriting valid commands when multiple
                         # controls target the same actuator (e.g., BELOW and ABOVE rules)
                         if decision is not None:
-                        ControlsActions.append((control.actuator, decision))
+                            ControlsActions.append((control.actuator, decision))
                     else:
                         # If custom algorithm should decide, avoid repeated control of same actuator
                         if control.actuator in SkipNextActuatorList:
@@ -440,11 +440,11 @@ class GenericScada(BasePLC):
 
                         # Load custom algorithm module (cached for performance)
                         if HybridAction not in self._module_cache:
-                        ScriptName = HybridAction.split('/')[-1]
-                        spec = importlib.util.spec_from_file_location(ScriptName, HybridAction)
-                        module = importlib.util.module_from_spec(spec)
-                        sys.modules[ScriptName] = module
-                        spec.loader.exec_module(module)
+                            ScriptName = HybridAction.split('/')[-1]
+                            spec = importlib.util.spec_from_file_location(ScriptName, HybridAction)
+                            module = importlib.util.module_from_spec(spec)
+                            sys.modules[ScriptName] = module
+                            spec.loader.exec_module(module)
                             self._module_cache[HybridAction] = module
                         else:
                             module = self._module_cache[HybridAction]
@@ -466,7 +466,7 @@ class GenericScada(BasePLC):
                             )
                             # Only add action if control condition was met (decision is not None)
                             if decision is not None:
-                            ControlsActions.append((control.actuator, decision))
+                                ControlsActions.append((control.actuator, decision))
                         else:
                             # Append final decision from algorithm
                             ControlsActions.append((control.actuator, result, self.get_master_clock()))

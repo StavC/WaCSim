@@ -104,6 +104,9 @@ class PhysicalPlant:
         self.sim = wntr.sim.WNTRSimulator(self.wn)
         self.master_time = 0
         self.connected_links_found = False
+        # Initialize dataframes early to avoid errors if simulation exits before first iteration
+        self.water_loss_df = pd.DataFrame(0, index=range(self.data["iterations"]+1), columns=self.tank_list)
+        self.demand_deficit_df = pd.DataFrame(0, index=range(self.data["iterations"]+1), columns=self.junction_list)
         self.db_update_string = "UPDATE plant SET value = ? WHERE name = ?"
 
         self.db_sleep_time = random.uniform(0.01, 0.1)
