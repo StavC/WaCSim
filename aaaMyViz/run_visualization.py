@@ -421,6 +421,78 @@ except Exception as e:
     print(f"   ✗ Error: {e}")
 
 # ============================================
+# 5. PLC Case - Custom Algorithms with Guard
+# ============================================
+print("\n[5/5] Generating PLC Case - Custom Algorithms plot...")
+
+os.makedirs('PLCCaseNew', exist_ok=True)
+
+try:
+    plc_ground_truth_df = pd.read_csv('../examples/EdenTown/NewPLC_Case/2_Custom_Algorithms/output/ground_truth.csv')
+    plc_ground_truth_df = plc_ground_truth_df.drop(0)
+
+    # Find attack intervals
+    plc_attack_intervals = find_attack_intervals(plc_ground_truth_df, 'plc4AttackerUnit')
+    plc_attack_start, plc_attack_end = plc_attack_intervals[0]
+
+    fig5, axes5 = plt.subplots(2, 2, figsize=(10, 7))
+
+    # Tank Levels (top-left)
+    axes5[0, 0].plot(plc_ground_truth_df['iteration'], plc_ground_truth_df['T1_LEVEL'], label='T1', color='green', linewidth=2)
+    axes5[0, 0].plot(plc_ground_truth_df['iteration'], plc_ground_truth_df['T2_LEVEL'], label='T2', color='green', linestyle='--', linewidth=2)
+    axes5[0, 0].axvline(x=plc_attack_start, color='red', linestyle='--', linewidth=2, label='Attack')
+    axes5[0, 0].axvline(x=plc_attack_end, color='red', linestyle='--', linewidth=2)
+    axes5[0, 0].set_title("Tank Levels", fontsize=14, fontweight='bold', y=1.15)
+    axes5[0, 0].set_ylabel("Level (m)", fontsize=12)
+    axes5[0, 0].grid(True, alpha=0.3)
+    adjust_ylim(axes5[0, 0], ['T1_LEVEL', 'T2_LEVEL'], plc_ground_truth_df)
+    add_legend_top_center(axes5[0, 0])
+
+    # Junction Pressures (top-right) - Use distinct colors for overlapping lines
+    axes5[0, 1].plot(plc_ground_truth_df['iteration'], plc_ground_truth_df['J1_LEVEL'], label='J1', color='#1f77b4', linewidth=2.5)  # Blue
+    axes5[0, 1].plot(plc_ground_truth_df['iteration'], plc_ground_truth_df['J4_LEVEL'], label='J4', color='#ff7f0e', linestyle='--', linewidth=2.5)  # Orange
+    axes5[0, 1].plot(plc_ground_truth_df['iteration'], plc_ground_truth_df['J5_LEVEL'], label='J5', color='#2ca02c', linestyle=':', linewidth=2.5)  # Green
+    axes5[0, 1].axvline(x=plc_attack_start, color='red', linestyle='--', linewidth=2, label='Attack')
+    axes5[0, 1].axvline(x=plc_attack_end, color='red', linestyle='--', linewidth=2)
+    axes5[0, 1].set_title("Junction Pressures", fontsize=14, fontweight='bold', y=1.15)
+    axes5[0, 1].set_ylabel("Pressure (m)", fontsize=12)
+    axes5[0, 1].grid(True, alpha=0.3)
+    adjust_ylim(axes5[0, 1], ['J1_LEVEL', 'J4_LEVEL', 'J5_LEVEL'], plc_ground_truth_df, min_override=50)
+    add_legend_top_center(axes5[0, 1])
+
+    # Pump Flows (bottom-left)
+    axes5[1, 0].plot(plc_ground_truth_df['iteration'], plc_ground_truth_df['P1_FLOW'], label='P1', color='purple', linewidth=2)
+    axes5[1, 0].plot(plc_ground_truth_df['iteration'], plc_ground_truth_df['P2_FLOW'], label='P2', color='magenta', linewidth=2)
+    axes5[1, 0].axvline(x=plc_attack_start, color='red', linestyle='--', linewidth=2, label='Attack')
+    axes5[1, 0].axvline(x=plc_attack_end, color='red', linestyle='--', linewidth=2)
+    axes5[1, 0].set_title("Pump Flows", fontsize=14, fontweight='bold', y=1.15)
+    axes5[1, 0].set_ylabel("Flow (CMH)", fontsize=12)
+    axes5[1, 0].set_xlabel("Time (steps)", fontsize=12)
+    axes5[1, 0].grid(True, alpha=0.3)
+    adjust_ylim(axes5[1, 0], ['P1_FLOW', 'P2_FLOW'], plc_ground_truth_df)
+    add_legend_top_center(axes5[1, 0])
+
+    # Valve Flows (bottom-right)
+    axes5[1, 1].plot(plc_ground_truth_df['iteration'], plc_ground_truth_df['V4_FLOW'], label='V4', color='blue', linewidth=2)
+    axes5[1, 1].plot(plc_ground_truth_df['iteration'], plc_ground_truth_df['V5_FLOW'], label='V5', color='cyan', linewidth=2)
+    axes5[1, 1].axvline(x=plc_attack_start, color='red', linestyle='--', linewidth=2, label='Attack')
+    axes5[1, 1].axvline(x=plc_attack_end, color='red', linestyle='--', linewidth=2)
+    axes5[1, 1].set_title("Valve Flows", fontsize=14, fontweight='bold', y=1.15)
+    axes5[1, 1].set_ylabel("Flow (CMH)", fontsize=12)
+    axes5[1, 1].set_xlabel("Time (steps)", fontsize=12)
+    axes5[1, 1].grid(True, alpha=0.3)
+    adjust_ylim(axes5[1, 1], ['V4_FLOW', 'V5_FLOW'], plc_ground_truth_df)
+    add_legend_top_center(axes5[1, 1])
+
+    plt.subplots_adjust(hspace=0.5, wspace=0.3)
+    plt.savefig('PLCCaseNew/PLC_CustomAlgo_GroundTruth.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    print("   ✓ Saved: PLCCaseNew/PLC_CustomAlgo_GroundTruth.png")
+
+except Exception as e:
+    print(f"   ✗ Error: {e}")
+
+# ============================================
 # Summary
 # ============================================
 print("\n" + "=" * 60)
@@ -432,6 +504,6 @@ print("  • DoS_NoGuard_GroundTruth.png     - Physical layer without guard")
 print("  • DoS_NoGuard_ScadaView.png       - What SCADA sees (frozen data!)")
 print("  • DoS_WithGuard_GroundTruth.png   - Physical layer WITH guard")
 print("  • DoS_WithGuard_ScadaView.png     - SCADA view WITH guard")
-print()
-
+print("\nGenerated files in aaaMyViz/PLCCaseNew/:")
+print("  • PLC_CustomAlgo_GroundTruth.png  - PLC Case with custom algorithms")
 print()
