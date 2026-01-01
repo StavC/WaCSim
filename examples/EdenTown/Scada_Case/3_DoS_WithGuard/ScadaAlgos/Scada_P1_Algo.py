@@ -42,7 +42,7 @@ def save_to_csv(cache_dict: pd.Series):
     """Append current SCADA data to CSV history."""
     os.makedirs(CSV_DIR, exist_ok=True)
     df = cache_dict.to_frame().T
-    
+
     if os.path.isfile(CSV_FILE):
         df.to_csv(CSV_FILE, mode='a', header=False, index=False)
     else:
@@ -67,10 +67,10 @@ def read_state():
         return None
     try:
         with open(STATE_FILE, 'r') as f:
-            content = f.read().strip()
+        content = f.read().strip()
             if not content or content == 'normal':
                 return None
-            parts = content.split(',')
+        parts = content.split(',')
             if len(parts) == 4:
                 return {
                     'remaining': int(parts[0]),
@@ -144,18 +144,18 @@ def calculate_medians(df: pd.DataFrame) -> tuple:
                 off_durations.append(current_count)
             current_state = val
             current_count = 1
-    
+
     # Don't forget the last run
     if current_count > 0:
         if current_state == 1:
             on_durations.append(current_count)
         else:
             off_durations.append(current_count)
-    
+
     # Calculate raw medians (use defaults if empty)
     raw_on = int(np.median(on_durations)) if on_durations else 5
     raw_off = int(np.median(off_durations)) if off_durations else 5
-    
+
     # Apply bias to shift equilibrium (pump less, rest more = lower tank level)
     biased_on = raw_on + MEDIAN_ON_BIAS
     biased_off = raw_off + MEDIAN_OFF_BIAS
@@ -163,7 +163,7 @@ def calculate_medians(df: pd.DataFrame) -> tuple:
     # Ensure minimum durations
     median_on = max(MIN_ON_DURATION, biased_on)
     median_off = max(MIN_OFF_DURATION, biased_off)
-    
+
     print(f"Calculated medians from {len(clean_df)} clean samples: "
           f"raw ON={raw_on}, OFF={raw_off} → biased ON={median_on}, OFF={median_off}")
     return median_on, median_off
@@ -185,7 +185,7 @@ def get_current_cycle_duration(df: pd.DataFrame) -> tuple:
             duration += 1
         else:
             break
-    
+
     return current_state, duration
 
 
@@ -248,14 +248,14 @@ def guard_control(df: pd.DataFrame) -> str:
     Uses median cycle times to maintain pump operation.
     """
     state = read_state()
-    
+
     if state is None:
         # First time entering guard mode
         print("DoS detected! Entering guard mode.")
         
         # Calculate medians from clean historical data
         median_on, median_off = calculate_medians(df)
-        
+
         # Get current pump state and how long it's been running
         current_pump, current_duration = get_current_cycle_duration(df)
         current_state = 'open' if current_pump == 1 else 'closed'
@@ -263,7 +263,7 @@ def guard_control(df: pd.DataFrame) -> str:
         # Calculate how much longer to continue current cycle
         target = median_on if current_state == 'open' else median_off
         remaining = max(0, target - current_duration)
-        
+
         print(f"Pump was {current_state} for {current_duration} iters. "
               f"Target={target}. Will continue for {remaining} more iters.")
         
@@ -276,14 +276,14 @@ def guard_control(df: pd.DataFrame) -> str:
         current_state = state['state']
         median_on = state['median_on']
         median_off = state['median_off']
-        
-        if remaining > 0:
+
+    if remaining > 0:
             # Continue current state
-            remaining -= 1
+        remaining -= 1
             print(f"Guard: P1 {current_state}, {remaining} iters remaining")
             write_state(remaining, current_state, median_on, median_off)
             return current_state
-        else:
+    else:
             # Time to switch!
             new_state = 'closed' if current_state == 'open' else 'open'
             new_duration = median_on if new_state == 'open' else median_off
