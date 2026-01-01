@@ -194,7 +194,7 @@ try:
             spine.set_linewidth(0.5)
             spine.set_color('#CCCCCC')
 
-    plt.subplots_adjust(top=0.85, hspace=0.5)
+    plt.subplots_adjust(top=0.88, hspace=0.35)
     plt.savefig('ScadaCaseNew/CyberLayer_PacketAnalysis.png', dpi=300, bbox_inches='tight')
     plt.close()
     print("   ✓ Saved: ScadaCaseNew/CyberLayer_PacketAnalysis.png")
@@ -219,7 +219,7 @@ try:
     attack_intervals = find_attack_intervals(ground_truth_df, 'plc2AttackerUnit')
     attack_start, attack_end = attack_intervals[0]
 
-    fig, axes = plt.subplots(3, 1, figsize=(6, 8), gridspec_kw={'height_ratios': [1, 1, 1]})
+    fig, axes = plt.subplots(3, 1, figsize=(7, 9), gridspec_kw={'height_ratios': [1, 1, 1]})
 
     # Tank Levels
     axes[0].plot(ground_truth_df['iteration'], ground_truth_df['T1_LEVEL'], label='T1', color='green', linewidth=2)
@@ -269,7 +269,7 @@ except Exception as e:
 print("\n[2/4] Generating DoS No Guard - SCADA View plot...")
 
 try:
-    fig2, axes2 = plt.subplots(3, 1, figsize=(6, 8), sharex=True)
+    fig2, axes2 = plt.subplots(3, 1, figsize=(7, 9), sharex=True)
 
     # Tank Levels
     axes2[0].plot(scada_df['iteration'], scada_df['T1'], label='T1', color='green', linewidth=2)
@@ -326,7 +326,7 @@ try:
     attack_intervals_guard = find_attack_intervals(ground_truth_guard_df, 'plc2AttackerUnit')
     attack_start_guard, attack_end_guard = attack_intervals_guard[0]
 
-    fig3, axes3 = plt.subplots(3, 1, figsize=(6, 8), gridspec_kw={'height_ratios': [1, 1, 1]})
+    fig3, axes3 = plt.subplots(3, 1, figsize=(7, 9), gridspec_kw={'height_ratios': [1, 1, 1]})
 
     # Tank Levels
     axes3[0].plot(ground_truth_guard_df['iteration'], ground_truth_guard_df['T1_LEVEL'], label='T1', color='green', linewidth=2)
@@ -376,7 +376,7 @@ except Exception as e:
 print("\n[4/4] Generating DoS WITH Guard - SCADA View plot...")
 
 try:
-    fig4, axes4 = plt.subplots(3, 1, figsize=(6, 8), sharex=True)
+    fig4, axes4 = plt.subplots(3, 1, figsize=(7, 9), sharex=True)
 
     # Tank Levels
     axes4[0].plot(scada_guard_df['iteration'], scada_guard_df['T1'], label='T1', color='green', linewidth=2)
