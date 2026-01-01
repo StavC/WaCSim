@@ -51,10 +51,10 @@ def adjust_ylim(ax, columns, df, min_override=None, legend_space=0.25):
     ax.set_ylim(min_val - data_range * 0.05, max_val + data_range * legend_space)
 
 def add_legend_top_center(ax):
-    """Add legend at top center, inside the plot area but above data."""
-    ax.legend(loc='upper center', ncol=4, frameon=True, fancybox=True, 
-              framealpha=0.9, fontsize=11)
-    ax.tick_params(axis='both', labelsize=11)
+    """Add legend at top center, outside the plot area."""
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.02), ncol=3, frameon=True, 
+              fancybox=True, framealpha=1, fontsize=9)
+    ax.tick_params(axis='both', labelsize=9)
 
 # ============================================
 # 0. Cyber Layer - Packet Analysis (PCAP)
@@ -125,7 +125,7 @@ try:
                      global_max_time + timedelta(seconds=bin_size),
                      timedelta(seconds=bin_size)).astype(datetime)
 
-    fig, axes = plt.subplots(nrows=2, ncols=2, sharex=True, sharey=False, figsize=(14, 7))
+    fig, axes = plt.subplots(nrows=2, ncols=2, sharex=True, sharey=False, figsize=(8, 6))
     # Layout: PLCs on left, SCADA and Attacker on right
     # [0,0] PLC1    [0,1] SCADA
     # [1,0] PLC2    [1,1] Attacker
@@ -216,13 +216,13 @@ try:
     attack_intervals = find_attack_intervals(ground_truth_df, 'plc2AttackerUnit')
     attack_start, attack_end = attack_intervals[0]
 
-    fig, axes = plt.subplots(3, 1, figsize=(14, 10), gridspec_kw={'height_ratios': [1, 1, 1]})
+    fig, axes = plt.subplots(3, 1, figsize=(6, 8), gridspec_kw={'height_ratios': [1, 1, 1]})
 
     # Tank Levels
     axes[0].plot(ground_truth_df['iteration'], ground_truth_df['T1_LEVEL'], label='T1', color='green', linewidth=2)
     axes[0].plot(ground_truth_df['iteration'], ground_truth_df['T2_LEVEL'], label='T2', color='green', linestyle='--', linewidth=2)
-    axes[0].axvline(x=attack_start, color='red', linestyle='--', linewidth=2, label='Attack Start')
-    axes[0].axvline(x=attack_end, color='red', linestyle=':', linewidth=2, label='Attack End')
+    axes[0].axvline(x=attack_start, color='red', linestyle='--', linewidth=2, label='Attack')
+    axes[0].axvline(x=attack_end, color='red', linestyle='--', linewidth=2)
     axes[0].set_title("Tank Levels", fontsize=14, fontweight='bold')
     axes[0].set_ylabel("Level (m)", fontsize=12)
     axes[0].grid(True, alpha=0.3)
@@ -232,8 +232,8 @@ try:
     # Pump Flows
     axes[1].plot(ground_truth_df['iteration'], ground_truth_df['P1_FLOW'], label='P1', color='purple', linewidth=2)
     axes[1].plot(ground_truth_df['iteration'], ground_truth_df['P2_FLOW'], label='P2', color='magenta', linewidth=2)
-    axes[1].axvline(x=attack_start, color='red', linestyle='--', linewidth=2, label='Attack Start')
-    axes[1].axvline(x=attack_end, color='red', linestyle=':', linewidth=2, label='Attack End')
+    axes[1].axvline(x=attack_start, color='red', linestyle='--', linewidth=2, label='Attack')
+    axes[1].axvline(x=attack_end, color='red', linestyle='--', linewidth=2)
     axes[1].set_title("Pump Flows", fontsize=14, fontweight='bold')
     axes[1].set_ylabel("Flow (CMH)", fontsize=12)
     axes[1].grid(True, alpha=0.3)
@@ -243,8 +243,8 @@ try:
     # Junction Pressures
     axes[2].plot(ground_truth_df['iteration'], ground_truth_df['J1_LEVEL'], label='J1', color='orange', linewidth=2)
     axes[2].plot(ground_truth_df['iteration'], ground_truth_df['J2_LEVEL'], label='J2', color='darkorange', linestyle='--', linewidth=2)
-    axes[2].axvline(x=attack_start, color='red', linestyle='--', linewidth=2, label='Attack Start')
-    axes[2].axvline(x=attack_end, color='red', linestyle=':', linewidth=2, label='Attack End')
+    axes[2].axvline(x=attack_start, color='red', linestyle='--', linewidth=2, label='Attack')
+    axes[2].axvline(x=attack_end, color='red', linestyle='--', linewidth=2)
     axes[2].set_title("Junction Pressures", fontsize=14, fontweight='bold')
     axes[2].set_ylabel("Pressure (m)", fontsize=12)
     axes[2].set_xlabel("Time (steps)", fontsize=12)
@@ -266,13 +266,13 @@ except Exception as e:
 print("\n[2/4] Generating DoS No Guard - SCADA View plot...")
 
 try:
-    fig2, axes2 = plt.subplots(3, 1, figsize=(14, 10), sharex=True)
+    fig2, axes2 = plt.subplots(3, 1, figsize=(6, 8), sharex=True)
 
     # Tank Levels
     axes2[0].plot(scada_df['iteration'], scada_df['T1'], label='T1', color='green', linewidth=2)
     axes2[0].plot(scada_df['iteration'], scada_df['T2'], label='T2', color='green', linestyle='--', linewidth=2)
-    axes2[0].axvline(x=attack_start, color='red', linestyle='--', linewidth=2, label='Attack Start')
-    axes2[0].axvline(x=attack_end, color='red', linestyle=':', linewidth=2, label='Attack End')
+    axes2[0].axvline(x=attack_start, color='red', linestyle='--', linewidth=2, label='Attack')
+    axes2[0].axvline(x=attack_end, color='red', linestyle='--', linewidth=2)
     axes2[0].set_title("Tank Levels", fontsize=14, fontweight='bold')
     axes2[0].set_ylabel("Level (m)", fontsize=12)
     axes2[0].grid(True, alpha=0.3)
@@ -282,8 +282,8 @@ try:
     # Pump Flows
     axes2[1].plot(ground_truth_df['iteration'], ground_truth_df['P1_FLOW'], label='P1', color='purple', linewidth=2)
     axes2[1].plot(ground_truth_df['iteration'], ground_truth_df['P2_FLOW'], label='P2', color='magenta', linewidth=2)
-    axes2[1].axvline(x=attack_start, color='red', linestyle='--', linewidth=2, label='Attack Start')
-    axes2[1].axvline(x=attack_end, color='red', linestyle=':', linewidth=2, label='Attack End')
+    axes2[1].axvline(x=attack_start, color='red', linestyle='--', linewidth=2, label='Attack')
+    axes2[1].axvline(x=attack_end, color='red', linestyle='--', linewidth=2)
     axes2[1].set_title("Pump Flows", fontsize=14, fontweight='bold')
     axes2[1].set_ylabel("Flow (CMH)", fontsize=12)
     axes2[1].grid(True, alpha=0.3)
@@ -293,8 +293,8 @@ try:
     # Junction Pressures
     axes2[2].plot(scada_df['iteration'], scada_df['J1'], label='J1', color='orange', linewidth=2)
     axes2[2].plot(scada_df['iteration'], scada_df['J2'], label='J2', color='darkorange', linestyle='--', linewidth=2)
-    axes2[2].axvline(x=attack_start, color='red', linestyle='--', linewidth=2, label='Attack Start')
-    axes2[2].axvline(x=attack_end, color='red', linestyle=':', linewidth=2, label='Attack End')
+    axes2[2].axvline(x=attack_start, color='red', linestyle='--', linewidth=2, label='Attack')
+    axes2[2].axvline(x=attack_end, color='red', linestyle='--', linewidth=2)
     axes2[2].set_title("Junction Pressures", fontsize=14, fontweight='bold')
     axes2[2].set_ylabel("Pressure (m)", fontsize=12)
     axes2[2].set_xlabel("Time (steps)", fontsize=12)
@@ -323,13 +323,13 @@ try:
     attack_intervals_guard = find_attack_intervals(ground_truth_guard_df, 'plc2AttackerUnit')
     attack_start_guard, attack_end_guard = attack_intervals_guard[0]
 
-    fig3, axes3 = plt.subplots(3, 1, figsize=(14, 10), gridspec_kw={'height_ratios': [1, 1, 1]})
+    fig3, axes3 = plt.subplots(3, 1, figsize=(6, 8), gridspec_kw={'height_ratios': [1, 1, 1]})
 
     # Tank Levels
     axes3[0].plot(ground_truth_guard_df['iteration'], ground_truth_guard_df['T1_LEVEL'], label='T1', color='green', linewidth=2)
     axes3[0].plot(ground_truth_guard_df['iteration'], ground_truth_guard_df['T2_LEVEL'], label='T2', color='green', linestyle='--', linewidth=2)
-    axes3[0].axvline(x=attack_start_guard, color='red', linestyle='--', linewidth=2, label='Attack Start')
-    axes3[0].axvline(x=attack_end_guard, color='red', linestyle=':', linewidth=2, label='Attack End')
+    axes3[0].axvline(x=attack_start_guard, color='red', linestyle='--', linewidth=2, label='Attack')
+    axes3[0].axvline(x=attack_end_guard, color='red', linestyle='--', linewidth=2)
     axes3[0].set_title("Tank Levels", fontsize=14, fontweight='bold')
     axes3[0].set_ylabel("Level (m)", fontsize=12)
     axes3[0].grid(True, alpha=0.3)
@@ -339,8 +339,8 @@ try:
     # Pump Flows
     axes3[1].plot(ground_truth_guard_df['iteration'], ground_truth_guard_df['P1_FLOW'], label='P1', color='purple', linewidth=2)
     axes3[1].plot(ground_truth_guard_df['iteration'], ground_truth_guard_df['P2_FLOW'], label='P2', color='magenta', linewidth=2)
-    axes3[1].axvline(x=attack_start_guard, color='red', linestyle='--', linewidth=2, label='Attack Start')
-    axes3[1].axvline(x=attack_end_guard, color='red', linestyle=':', linewidth=2, label='Attack End')
+    axes3[1].axvline(x=attack_start_guard, color='red', linestyle='--', linewidth=2, label='Attack')
+    axes3[1].axvline(x=attack_end_guard, color='red', linestyle='--', linewidth=2)
     axes3[1].set_title("Pump Flows", fontsize=14, fontweight='bold')
     axes3[1].set_ylabel("Flow (CMH)", fontsize=12)
     axes3[1].grid(True, alpha=0.3)
@@ -350,8 +350,8 @@ try:
     # Junction Pressures
     axes3[2].plot(ground_truth_guard_df['iteration'], ground_truth_guard_df['J1_LEVEL'], label='J1', color='orange', linewidth=2)
     axes3[2].plot(ground_truth_guard_df['iteration'], ground_truth_guard_df['J2_LEVEL'], label='J2', color='darkorange', linestyle='--', linewidth=2)
-    axes3[2].axvline(x=attack_start_guard, color='red', linestyle='--', linewidth=2, label='Attack Start')
-    axes3[2].axvline(x=attack_end_guard, color='red', linestyle=':', linewidth=2, label='Attack End')
+    axes3[2].axvline(x=attack_start_guard, color='red', linestyle='--', linewidth=2, label='Attack')
+    axes3[2].axvline(x=attack_end_guard, color='red', linestyle='--', linewidth=2)
     axes3[2].set_title("Junction Pressures", fontsize=14, fontweight='bold')
     axes3[2].set_ylabel("Pressure (m)", fontsize=12)
     axes3[2].set_xlabel("Time (steps)", fontsize=12)
@@ -373,13 +373,13 @@ except Exception as e:
 print("\n[4/4] Generating DoS WITH Guard - SCADA View plot...")
 
 try:
-    fig4, axes4 = plt.subplots(3, 1, figsize=(14, 10), sharex=True)
+    fig4, axes4 = plt.subplots(3, 1, figsize=(6, 8), sharex=True)
 
     # Tank Levels
     axes4[0].plot(scada_guard_df['iteration'], scada_guard_df['T1'], label='T1', color='green', linewidth=2)
     axes4[0].plot(scada_guard_df['iteration'], scada_guard_df['T2'], label='T2', color='green', linestyle='--', linewidth=2)
-    axes4[0].axvline(x=attack_start_guard, color='red', linestyle='--', linewidth=2, label='Attack Start')
-    axes4[0].axvline(x=attack_end_guard, color='red', linestyle=':', linewidth=2, label='Attack End')
+    axes4[0].axvline(x=attack_start_guard, color='red', linestyle='--', linewidth=2, label='Attack')
+    axes4[0].axvline(x=attack_end_guard, color='red', linestyle='--', linewidth=2)
     axes4[0].set_title("Tank Levels", fontsize=14, fontweight='bold')
     axes4[0].set_ylabel("Level (m)", fontsize=12)
     axes4[0].grid(True, alpha=0.3)
@@ -389,8 +389,8 @@ try:
     # Pump Flows
     axes4[1].plot(ground_truth_guard_df['iteration'], ground_truth_guard_df['P1_FLOW'], label='P1', color='purple', linewidth=2)
     axes4[1].plot(ground_truth_guard_df['iteration'], ground_truth_guard_df['P2_FLOW'], label='P2', color='magenta', linewidth=2)
-    axes4[1].axvline(x=attack_start_guard, color='red', linestyle='--', linewidth=2, label='Attack Start')
-    axes4[1].axvline(x=attack_end_guard, color='red', linestyle=':', linewidth=2, label='Attack End')
+    axes4[1].axvline(x=attack_start_guard, color='red', linestyle='--', linewidth=2, label='Attack')
+    axes4[1].axvline(x=attack_end_guard, color='red', linestyle='--', linewidth=2)
     axes4[1].set_title("Pump Flows", fontsize=14, fontweight='bold')
     axes4[1].set_ylabel("Flow (CMH)", fontsize=12)
     axes4[1].grid(True, alpha=0.3)
@@ -400,8 +400,8 @@ try:
     # Junction Pressures
     axes4[2].plot(scada_guard_df['iteration'], scada_guard_df['J1'], label='J1', color='orange', linewidth=2)
     axes4[2].plot(scada_guard_df['iteration'], scada_guard_df['J2'], label='J2', color='darkorange', linestyle='--', linewidth=2)
-    axes4[2].axvline(x=attack_start_guard, color='red', linestyle='--', linewidth=2, label='Attack Start')
-    axes4[2].axvline(x=attack_end_guard, color='red', linestyle=':', linewidth=2, label='Attack End')
+    axes4[2].axvline(x=attack_start_guard, color='red', linestyle='--', linewidth=2, label='Attack')
+    axes4[2].axvline(x=attack_end_guard, color='red', linestyle='--', linewidth=2)
     axes4[2].set_title("Junction Pressures", fontsize=14, fontweight='bold')
     axes4[2].set_ylabel("Pressure (m)", fontsize=12)
     axes4[2].set_xlabel("Time (steps)", fontsize=12)
