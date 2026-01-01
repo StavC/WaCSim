@@ -1,8 +1,8 @@
-; Filename: /home/vboxuser/Desktop/WacsimCur/WaCSim/examples/EdenTown/Scada_Case/3_DoS_WithGuard/EdenTownScada.inp
+; Filename: /home/vboxuser/Desktop/WacsimCur/WaCSim/examples/EdenTown/NewPLC_Case/2_Custom_Algorithms/EdenTown.inp
 ; WNTR: 1.3.2
-; Created: 2026-01-01 15:06:17
+; Created: 2026-01-01 18:00:54
 [TITLE]
-EdenTown SCADA Case
+Anytown master file for rl-wds
 
 [JUNCTIONS]
 ;ID                      Elevation       Demand Pattern                 
@@ -11,6 +11,9 @@ EdenTown SCADA Case
  J3                             15.24      600.565002 PAT1                       ;
  J4                             15.24      500.130005 PAT1                       ;
  J5                             15.24             850 PAT1                       ;
+ J5S                           66.535               0 PAT1                       ;
+ J1S                            15.24               0 PAT1                       ;
+ J4S                            15.24               0 PAT1                       ;
 
 [RESERVOIRS]
 ;ID                                   Head                  Pattern
@@ -25,12 +28,12 @@ EdenTown SCADA Case
 [PIPES]
 ;ID                   Node1                Node2                              Length             Diameter            Roughness           Minor Loss               Status
  PIPE1                J1                   J2                            2743.2           304.8              70               0                 Open   ;
- PIPE3                J1                   J3                            1828.8             254             120               0                 Open   ;
+ PIPE3                J1S                  J3                            1828.8             254             120               0                 Open   ;
  PIPE2                J2                   J4                            1828.8             254              70               0                 Open   ;
  PIPE4                J3                   J4                            1828.8             254              70               0                 Open   ;
  PIPE5                J3                   J5                             30.48           304.8             120               0                 Open   ;
- PIPE6                J4                   T2                            0.3048           304.8             120               0                 Open   ;
- PIPE7                T1                   J5                              1000           304.8             120               0                 Open   ;
+ PIPE6                J4S                  T2                            0.3048           304.8             120               0                 Open   ;
+ PIPE7                T1                   J5S                             1000           304.8             120               0                 Open   ;
 
 [PUMPS]
 ;ID                   Node1                Node2                Properties          
@@ -39,6 +42,9 @@ EdenTown SCADA Case
 
 [VALVES]
 ;ID                   Node1                Node2                            Diameter Type              Setting           Minor Loss
+ V5                   J5                   J5S                            304.8 PRV                0               0   ;
+ V1                   J1                   J1S                              254 PRV                0               0   ;
+ V4                   J4                   J4S                            304.8 PRV                0               0   ;
 
 [TAGS]
 ;type      name       tag       
@@ -48,6 +54,9 @@ EdenTown SCADA Case
 
 [STATUS]
 ;ID        Setting   
+V5         Open      
+V1         Open      
+V4         Open      
 
 [PATTERNS]
 ;ID        Multipliers
@@ -113,27 +122,34 @@ PAT4 0.063721 0.049806 0.049595 0.057339 0.060017 0.053507
 [CURVES]
 ;ID         X-Value      Y-Value     
 ;PUMP: H1
- H1             0.000000    92.000000   ;
- H1           400.000000    91.000000   ;
- H1           800.000000    87.000000   ;
- H1          1200.000000    80.000000   ;
- H1          1600.000000    71.000000   ;
- H1          2000.000000    59.000000   ;
- H1          2400.000000    45.000000   ;
+ H1             0.000000    85.440000   ;
+ H1           550.260000    75.000000   ;
+ H1          1200.520000    70.296000   ;
+ H1          1400.780000    65.104000   ;
+ H1          2200.040000    60.169000   ;
+ H1          2900.000000     0.000000   ;
 
 ;UNKNOWN: E1
  E1             0.000000     0.000000   ;
- E1           400.000000     0.550000   ;
- E1           800.000000     0.700000   ;
- E1          1200.000000     0.780000   ;
- E1          1600.000000     0.750000   ;
- E1          2000.000000     0.650000   ;
- E1          2400.000000     0.500000   ;
+ E1           454.260000     0.500000   ;
+ E1           908.520000     0.650000   ;
+ E1          1362.780000     0.550000   ;
+ E1          1817.040000     0.400000   ;
+ E1          2900.000000     0.000000   ;
 
 
 [CONTROLS]
 Pump P2 Open IF Tank T2 below 3.0
 Pump P2 Closed IF Tank T2 above 7.0
+Pump P1 Open IF Tank T1 below 6.0
+Pump P1 Closed IF Tank T1 above 7.0
+Valve V5 Closed IF Tank T1 above 10.0
+Valve V5 Open IF Tank T1 below 9.0
+Valve V4 Closed IF Tank T2 above 10.0
+Valve V4 Open IF Tank T2 below 9.0
+Valve V5 Open IF Tank T1 above -1.0
+Valve V1 Open IF Tank T1 above -1.0
+Valve V4 Open IF Tank T1 above -1.0
 Pump P2 Open IF Tank T1 above -1.0
 Pump P1 Open IF Tank T1 above -1.0
 
@@ -210,6 +226,9 @@ J2               6450.570000000       4424.640000000
 J3               6466.770000000       5769.850000000
 J4               5332.250000000       5332.250000000
 J5               6094.000000000       6499.190000000
+J5S              5809.812000000       6840.866000000
+J1S              7114.266000000       5894.401000000
+J4S              4922.195000000       5619.779000000
 R2               7320.233000000       4305.517000000
 R1               7962.652000000       5752.186000000
 T1               6094.000000000       7200.190000000
