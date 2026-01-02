@@ -135,7 +135,8 @@ def AlgoRun(plc_cache, plc_dict, scada_cache=None, control=None):
         if j1_value is not None and check_teardown(j1_value):
             with open(STATE_FILE, 'w') as f:
                 f.write('rule')
-            return 'rule'
+            print("[P1_Algo] Teardown triggered - OPENING pump")
+            return 'open', True  # Explicitly open pump, don't rely on INP rules
         print("[P1_Algo] Guard active, keeping pump closed")
         return 'closed', True
     
