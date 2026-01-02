@@ -89,10 +89,9 @@ def check_teardown(j1_pressure):
     """
     Check if guard should deactivate based on J1 pressure.
     Returns True if pressure is low enough to return to normal operation.
-    Threshold 56 allows T1 to drop to ~6.5m before reopening pump.
     """
-    if 5 < j1_pressure <= 56.0:
-        print(f"[P1_Algo] Teardown: J1 pressure {j1_pressure:.2f} <= 56, returning to normal")
+    if 5 < j1_pressure <= 58.0:
+        print(f"[P1_Algo] Teardown: J1 pressure {j1_pressure:.2f} <= 58, returning to normal")
         return True
     return False
 
