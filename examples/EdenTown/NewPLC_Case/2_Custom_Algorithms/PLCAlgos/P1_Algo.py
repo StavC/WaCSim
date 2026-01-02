@@ -109,6 +109,8 @@ def AlgoRun(plc_cache, plc_dict, scada_cache=None, control=None):
     Returns:
         str or tuple: 'rule' for normal operation, ('closed', True) to force close
     """
+    global previous_p1f_values
+    
     # Initialize on first call (cleans up state from previous runs)
     initialize_run()
     
@@ -133,9 +135,15 @@ def AlgoRun(plc_cache, plc_dict, scada_cache=None, control=None):
     # If guard is active (pump closed), check for teardown
     if current_state == 'closed':
         if j1_value is not None and check_teardown(j1_value):
+            # Reset state for next cycle
             with open(STATE_FILE, 'w') as f:
                 f.write('rule')
-            print("[P1_Algo] Teardown triggered - OPENING pump")
+            # Clear drop cache so we can detect new drops after reopening
+            if os.path.exists(DROP_CACHE_FILE):
+                os.remove(DROP_CACHE_FILE)
+            # Clear flow history for fresh detection
+            previous_p1f_values.clear()
+            print("[P1_Algo] Teardown triggered - OPENING pump (ready for next cycle)")
             return 'open', True  # Explicitly open pump, don't rely on INP rules
         print("[P1_Algo] Guard active, keeping pump closed")
         return 'closed', True
