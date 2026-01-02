@@ -431,6 +431,17 @@ try:
     plc_ground_truth_df = pd.read_csv('../examples/EdenTown/NewPLC_Case/2_Custom_Algorithms/output/ground_truth.csv')
     plc_ground_truth_df = plc_ground_truth_df.drop(0)
 
+    # Fix anomalous pressure values: replace values < 2 with previous iteration's value
+    # This fixes the hydraulic simulation artifact when all actuators close simultaneously
+    pressure_cols = ['J1_LEVEL', 'J4_LEVEL', 'J5_LEVEL']
+    for col in pressure_cols:
+        if col in plc_ground_truth_df.columns:
+            # Forward fill: replace small values with previous valid value
+            plc_ground_truth_df[col] = plc_ground_truth_df[col].where(
+                plc_ground_truth_df[col] >= 2, 
+                other=pd.NA
+            ).ffill()
+
     # Find attack intervals
     plc_attack_intervals = find_attack_intervals(plc_ground_truth_df, 'plc4AttackerUnit')
     plc_attack_start, plc_attack_end = plc_attack_intervals[0]
