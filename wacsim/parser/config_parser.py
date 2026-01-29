@@ -659,6 +659,10 @@ class SchemaParser:
                 Optional('dependents', default=[]): [And(
                     str,
                     SchemaParser.string_pattern
+                )],
+                Optional('Hybrid_Values_To_Send', default=[]): [And(
+                    str,
+                    SchemaParser.string_pattern
                 )]
 
             }]

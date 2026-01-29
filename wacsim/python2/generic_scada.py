@@ -87,14 +87,19 @@ class GenericScada(BasePLC):
         self.controls =[]
 
         self.decision_maker = {}
+        self.hybrid_values_to_send = {}  # actuator_name → [sensor1, sensor2, ...] for hybrid mode
 
         if 'decision_maker_per_scadacommand' in self.intermediate_yaml:
 
             for plc in self.intermediate_yaml['decision_maker_per_scadacommand']:
 
                     for actuator in plc.get('actuators', []):
-                        # Add the actuator name and tie_breaker to tie_solver
+                        # Add the actuator name and decision_maker
                         self.decision_maker[actuator['name']] = actuator['decision_maker']
+                        # Add Hybrid_Values_To_Send if configured
+                        values_to_send = actuator.get('Hybrid_Values_To_Send', [])
+                        if values_to_send:
+                            self.hybrid_values_to_send[actuator['name']] = values_to_send
 
 
         for PLC in self.intermediate_yaml['plcs']:
@@ -424,8 +429,12 @@ class GenericScada(BasePLC):
 
                     # Apply rule-based control if specified
                     if HybridAction == 'rule':
+                        # Get dependant value if control has one (TimeControl doesn't have dependant)
+                        dependant_value = None
+                        if hasattr(control, 'dependant'):
+                            dependant_value = self.cache.loc[clock][control.dependant]
                         decision = control.getScadaDecision(
-                            self.cache.loc[clock][control.dependant],
+                            dependant_value,
                             self.get_master_clock()
                         )
                         # Only add action if control condition was met (decision is not None)
@@ -460,8 +469,12 @@ class GenericScada(BasePLC):
 
                         # Apply rule-based or algorithm-based decision
                         if result == 'rule':
+                            # Get dependant value if control has one (TimeControl doesn't have dependant)
+                            dependant_value = None
+                            if hasattr(control, 'dependant'):
+                                dependant_value = self.cache.loc[clock][control.dependant]
                             decision = control.getScadaDecision(
-                                self.cache.loc[clock][control.dependant],
+                                dependant_value,
                                 self.get_master_clock()
                             )
                             # Only add action if control condition was met (decision is not None)
@@ -471,14 +484,16 @@ class GenericScada(BasePLC):
                             # Append final decision from algorithm
                             ControlsActions.append((control.actuator, result, self.get_master_clock()))
 
-                    # In hybrid control, send the raw sensor value to the PLC as well
+                    # In hybrid control, send configured sensor values to PLC with S suffix
                     if self.mode == 'hybridcontrol':
-                        # Sends sensor value to PLC under a modified tag (e.g., T101 → T101S) to support possible MiTM scenarios
-                        self.send(
-                            (f'{control.dependant}S', 1),
-                            self.cache.loc[clock][control.dependant],
-                            self.intermediate_yaml['scada']['local_ip']
-                        )
+                        # Send Hybrid_Values_To_Send for this actuator (e.g., T1 → T1S)
+                        if control.actuator in self.hybrid_values_to_send:
+                            for sensor in self.hybrid_values_to_send[control.actuator]:
+                                self.send(
+                                    (f'{sensor}S', 1),
+                                    self.cache.loc[clock][sensor],
+                                    self.intermediate_yaml['scada']['local_ip']
+                                )
 
 
                 # Apply the SCADA decisions by writing them to the shared database and broadcasting to PLCs

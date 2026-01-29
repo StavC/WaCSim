@@ -139,9 +139,19 @@ class GenericPLC(BasePLC):
             for control in self.intermediate_controls:
                 scada_columns.append(f'ScadaCommand_{control["actuator"]}')
                 self.scadaCache[f'ScadaCommand_{control["actuator"]}'] = None
-                if self.mode == 'hybridcontrol':
-                    scada_columns.append(f'{control["dependant"]}S')
-                    self.scadaCache[f'{control["dependant"]}S'] = None
+            
+            # In hybrid mode, register Hybrid_Values_To_Send tags from decision_maker_per_scadacommand
+            if self.mode == 'hybridcontrol' and 'decision_maker_per_scadacommand' in self.intermediate_yaml:
+                for dm_plc in self.intermediate_yaml['decision_maker_per_scadacommand']:
+                    # Only process if this config is for the current PLC
+                    if dm_plc['name'] == self.intermediate_plc['name']:
+                        for actuator in dm_plc.get('actuators', []):
+                            for sensor in actuator.get('Hybrid_Values_To_Send', []):
+                                sensor_s_tag = f'{sensor}S'
+                                if sensor_s_tag not in scada_columns:
+                                    scada_columns.append(sensor_s_tag)
+                                    self.scadaCache[sensor_s_tag] = None
+            
             # Remove duplicates and create a DataFrame for SCADA tag freshness.
             scada_columns = list(set(scada_columns))
             self.scada_tag_fresh = pd.DataFrame(False, index=range(self.num_iterations+1), columns=scada_columns)
