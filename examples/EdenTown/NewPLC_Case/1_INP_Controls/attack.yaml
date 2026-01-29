@@ -1,5 +1,5 @@
 # DoS Attack on PLC4
-# Attack occurs during iterations 145-350
+# Attack occurs during iterations 145-245
 
 network_attacks:
   - name: plc4AttackerUnit
@@ -7,7 +7,7 @@ network_attacks:
     trigger:
       type: time
       start: 145
-      end: 350
+      end: 245
     type: simple_dos
     direction: destination
 

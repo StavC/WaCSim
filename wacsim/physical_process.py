@@ -338,18 +338,10 @@ class PhysicalPlant:
         self.values_list = [self.master_time, datetime.now()]
         for tank in self.tank_list:
             idx = en.getnodeindex(ph=self.proj, id=tank)
-            pressure = en.getnodevalue(ph=self.proj, index=idx, property=en.PRESSURE)
-            # Clamp tiny negative values (numerical precision errors) to 0
-            if -1e-6 < pressure < 0:
-                pressure = 0.0
-            self.values_list.extend([pressure])
+            self.values_list.extend([en.getnodevalue(ph=self.proj, index=idx, property=en.PRESSURE)])
         for junction in self.junction_list:
             idx = en.getnodeindex(ph=self.proj, id=junction)
-            pressure = en.getnodevalue(ph=self.proj, index=idx, property=en.PRESSURE)
-            # Clamp tiny negative values (numerical precision errors) to 0
-            if -1e-6 < pressure < 0:
-                pressure = 0.0
-            self.values_list.extend([pressure])
+            self.values_list.extend([en.getnodevalue(ph=self.proj, index=idx, property=en.PRESSURE)])
         for pump in self.pump_list:
             idx = en.getlinkindex(ph=self.proj, id=pump)
             self.values_list.extend([
@@ -374,22 +366,15 @@ class PhysicalPlant:
 
     def extend_tanks(self, results=None):
         for tank in self.tank_list:
-            pressure = results[tank]['pressure']
-            # Clamp tiny negative values (numerical precision errors) to 0
-            if -1e-6 < pressure < 0:
-                pressure = 0.0
-            self.values_list.extend([pressure])
+            self.values_list.extend([results[tank]['pressure']])
 
     def extend_junctions(self, results=None):
         negative_pressure = 0
         for junction in self.junction_list:
             pressure = results[junction]['pressure']
-            # Clamp tiny negative values (numerical precision errors) to 0
-            if -1e-6 < pressure < 0:
-                pressure = 0.0
-            elif pressure < 0:
+            if pressure < 0:
                 negative_pressure = 1
-            self.values_list.extend([pressure])
+            self.values_list.extend([results[junction]['pressure']])
         if negative_pressure:
             self.logger.warning("At iteration {x}, system has negative pressures - \
                                  negative pressures occurred at one or more junctions with positive demand".format(x=self.master_time))
