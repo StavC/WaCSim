@@ -56,6 +56,14 @@ def add_legend_top_center(ax):
               fancybox=True, framealpha=1, fontsize=9)
     ax.tick_params(axis='both', labelsize=9)
 
+def skip_first_iteration(df):
+    """Skip the first iteration (iteration 0 and 1) from the dataframe."""
+    if 'iteration' in df.columns:
+        return df[df['iteration'] > 1].reset_index(drop=True)
+    else:
+        # If no iteration column, drop the first two rows
+        return df.iloc[2:].reset_index(drop=True)
+
 # ============================================
 # 0. Cyber Layer - Packet Analysis (PCAP)
 # ============================================
@@ -211,7 +219,9 @@ print("\n[1/4] Generating DoS No Guard - Ground Truth plot...")
 try:
     ground_truth_df = pd.read_csv('../examples/EdenTown/Scada_Case/2_DoS_NoGuard/outputNew2/ground_truth.csv')
     scada_df = pd.read_csv('../examples/EdenTown/Scada_Case/2_DoS_NoGuard/outputNew2/scada_values.csv')
-    ground_truth_df = ground_truth_df.drop(0)
+    # Skip first iteration (iteration 0) for cleaner plots
+    ground_truth_df = skip_first_iteration(ground_truth_df)
+    scada_df = skip_first_iteration(scada_df)
 
     attack_intervals = find_attack_intervals(ground_truth_df, 'plc2AttackerUnit')
     attack_start, attack_end = attack_intervals[0]
@@ -318,7 +328,9 @@ print("\n[3/4] Generating DoS WITH Guard - Ground Truth plot...")
 try:
     ground_truth_guard_df = pd.read_csv('../examples/EdenTown/Scada_Case/3_DoS_WithGuard/outputNew3/ground_truth.csv')
     scada_guard_df = pd.read_csv('../examples/EdenTown/Scada_Case/3_DoS_WithGuard/outputNew3/scada_values.csv')
-    ground_truth_guard_df = ground_truth_guard_df.drop(0)
+    # Skip first iteration (iteration 0) for cleaner plots
+    ground_truth_guard_df = skip_first_iteration(ground_truth_guard_df)
+    scada_guard_df = skip_first_iteration(scada_guard_df)
 
     attack_intervals_guard = find_attack_intervals(ground_truth_guard_df, 'plc2AttackerUnit')
     attack_start_guard, attack_end_guard = attack_intervals_guard[0]
