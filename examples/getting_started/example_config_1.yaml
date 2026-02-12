@@ -1,2 +1,0 @@
-inp_file: minitown_map.inp
-plcs: !include minitown_plcs.yaml

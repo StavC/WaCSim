@@ -1,5 +1,5 @@
 [TITLE]
-Anytown master file for rl-wds
+EdenTown SCADA Case
 
 [JUNCTIONS]
 ;ID              	Elev        	Demand      	Pattern         
@@ -21,12 +21,12 @@ Anytown master file for rl-wds
 
 [PIPES]
 ;ID              	Node1           	Node2           	Length      	Diameter    	Roughness   	MinorLoss   	Status
- PIPE1           	J1              	J2              	2743.2000   	304.8       	70.0000     	0.0000      	Open  	;Res
- PIPE3           	J1              	J3              	1828.8000   	254.0       	120.0000    	0.0000      	Open  	;Res
- PIPE2           	J2              	J4              	1828.8000   	254.0       	70.0000     	0.0000      	Open  	;city
- PIPE4           	J3              	J4              	1828.8000   	254.0       	70.0000     	0.0000      	Open  	;city
- PIPE5           	J3              	J5              	30.4800     	304.8       	120.0000    	0.0000      	Open  	;city
- PIPE6           	J4              	T2              	0.3048      	304.8       	120.0000    	0.0000      	Open  	;Res
+ PIPE1           	J1              	J2              	2743.2000   	304.8       	70.0000     	0.0000      	Open  	;
+ PIPE3           	J1              	J3              	1828.8000   	254.0       	120.0000    	0.0000      	Open  	;
+ PIPE2           	J2              	J4              	1828.8000   	254.0       	70.0000     	0.0000      	Open  	;
+ PIPE4           	J3              	J4              	1828.8000   	254.0       	70.0000     	0.0000      	Open  	;
+ PIPE5           	J3              	J5              	30.4800     	304.8       	120.0000    	0.0000      	Open  	;
+ PIPE6           	J4              	T2              	0.3048      	304.8       	120.0000    	0.0000      	Open  	;
  PIPE7           	T1              	J5              	1000        	304.8       	120.0000    	0.0000      	Open  	;
 
 [PUMPS]
@@ -35,7 +35,7 @@ Anytown master file for rl-wds
  P1              	R1              	J1              	HEAD H1	;
 
 [VALVES]
-;ID              	Node1           	Node2           	Diameter    	Type	Setting     	MinorLoss   
+;ID              	Node1           	Node2           	Diameter    	Type	Setting     	MinorLoss
 
 [TAGS]
 
@@ -54,20 +54,20 @@ Anytown master file for rl-wds
 
 [CURVES]
 ;ID              	X-Value     	Y-Value
-;PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: ID              	X-Value     	Y-Value
- H1              	0.0000      	85.440      
- H1              	550.26000   	75.000      
- H1              	1200.52000  	70.296      
- H1              	1400.7800   	65.104      
- H1              	2200.0400   	60.169      
- H1              	2900.0000   	0.          
-;PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: 
- E1              	0.0000      	0.          
- E1              	454.26000   	.50         
- E1              	908.52000   	.65         
- E1              	1362.7800   	.55         
- E1              	1817.0400   	.40         
- E1              	2900.0000   	0.          
+ H1              	0.0000      	92.00
+ H1              	400.0000    	91.00
+ H1              	800.0000    	87.00
+ H1              	1200.0000   	80.00
+ H1              	1600.0000   	71.00
+ H1              	2000.0000   	59.00
+ H1              	2400.0000   	45.00
+ E1              	0.0000      	0.00
+ E1              	400.0000    	0.55
+ E1              	800.0000    	0.70
+ E1              	1200.0000   	0.78
+ E1              	1600.0000   	0.75
+ E1              	2000.0000   	0.65
+ E1              	2400.0000   	0.50          
 
 [CONTROLS]
 LINK   P2  OPEN    IF NODE T2                BELOW    3
@@ -86,7 +86,9 @@ LINK   P1  CLOSED  IF NODE T1                ABOVE    7
 
 
 
+
 [RULES]
+
 
 
 

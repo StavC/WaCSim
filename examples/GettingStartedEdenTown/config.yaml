@@ -1,0 +1,12 @@
+# WaCSim Getting Started — EdenTown, PLC control, no attacks, vanilla (INP rules only)
+# Run from this directory: sudo wacsim config.yaml
+
+inp_file: EdenTown.inp
+plcs: !include EdenTown_plc.yaml
+mode: plccontrol
+output_path: output
+iterations: 100
+network_topology_type: simple
+demand: pdd
+demand_patterns: demands_EdenTown.csv
+log_level: info

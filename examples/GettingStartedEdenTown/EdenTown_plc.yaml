@@ -1,0 +1,30 @@
+# EdenTown PLC layout (vanilla — no custom algorithms)
+# PLC1 controls P2 (pump); needs T2 level from PLC3
+# PLC2 has T1, V5, J5; controls V5
+# PLC3 has T2, V4, J4; controls V4
+# PLC4 controls P1 (pump); has J1, P1F, V1F
+
+- name: PLC1
+  actuators:
+    - P2
+- name: PLC2
+  sensors:
+    - T1
+    - V5F
+    - J5
+  actuators:
+    - V5
+- name: PLC3
+  sensors:
+    - T2
+    - V4F
+    - J4
+  actuators:
+    - V4
+- name: PLC4
+  actuators:
+    - P1
+  sensors:
+    - J1
+    - P1F
+    - V1F

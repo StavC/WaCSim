@@ -1,0 +1,24 @@
+# Decision Maker Configuration for Hybrid Mode
+# Demonstrates the Hybrid_Values_To_Send feature
+#
+# In hybrid mode, SCADA runs algorithms and sends commands to PLCs.
+# Hybrid_Values_To_Send specifies which sensor values SCADA should 
+# send to PLCs with an "S" suffix (e.g., T1 → T1S).
+#
+# This allows PLC algorithms to:
+# - Compare local sensor readings with SCADA's view
+# - Detect potential MitM attacks
+# - Make informed decisions using both local and SCADA data
+
+- name: PLC1
+  actuators:
+    - name: P2
+      decision_maker: rule  # Use INP file rules for P2
+
+- name: PLC4
+  actuators:
+    - name: P1
+      decision_maker: examples/EdenTown/Scada_Case/3_DoS_WithGuard/ScadaAlgos/Scada_P1_Algo.py
+      # Hybrid_Values_To_Send: SCADA sends these sensor values to PLC4
+      # PLC4's algorithm can access them as T1S, J1S in scadaCache
+      Hybrid_Values_To_Send: [T1, J1]

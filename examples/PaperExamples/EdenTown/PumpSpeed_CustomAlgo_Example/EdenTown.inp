@@ -8,6 +8,9 @@ Anytown master file for rl-wds
  J3              	15.2400     	600.565002  	PAT1            	;
  J4              	15.2400     	500.130005  	PAT1            	;
  J5              	15.2400     	850.000000  	PAT1            	;
+ J5S             	66.535      	0           	                	;
+ J1S             	15.240      	0           	                	;
+ J4S             	15.24       	0           	                	;
 
 [RESERVOIRS]
 ;ID              	Head        	Pattern         
@@ -22,12 +25,12 @@ Anytown master file for rl-wds
 [PIPES]
 ;ID              	Node1           	Node2           	Length      	Diameter    	Roughness   	MinorLoss   	Status
  PIPE1           	J1              	J2              	2743.2000   	304.8       	70.0000     	0.0000      	Open  	;Res
- PIPE3           	J1              	J3              	1828.8000   	254.0       	120.0000    	0.0000      	Open  	;Res
+ PIPE3           	J1S             	J3              	1828.8000   	254.0       	120.0000    	0.0000      	Open  	;Res
  PIPE2           	J2              	J4              	1828.8000   	254.0       	70.0000     	0.0000      	Open  	;city
  PIPE4           	J3              	J4              	1828.8000   	254.0       	70.0000     	0.0000      	Open  	;city
  PIPE5           	J3              	J5              	30.4800     	304.8       	120.0000    	0.0000      	Open  	;city
- PIPE6           	J4              	T2              	0.3048      	304.8       	120.0000    	0.0000      	Open  	;Res
- PIPE7           	T1              	J5              	1000        	304.8       	120.0000    	0.0000      	Open  	;
+ PIPE6           	J4S             	T2              	0.3048      	304.8       	120.0000    	0.0000      	Open  	;Res
+ PIPE7           	T1              	J5S             	1000        	304.8       	120.0000    	0.0000      	Open  	;
 
 [PUMPS]
 ;ID              	Node1           	Node2           	Parameters
@@ -36,6 +39,9 @@ Anytown master file for rl-wds
 
 [VALVES]
 ;ID              	Node1           	Node2           	Diameter    	Type	Setting     	MinorLoss   
+ V5              	J5              	J5S             	304.8       	PRV 	0           	0           	;
+ V1              	J1              	J1S             	254         	PRV 	0           	0           	;
+ V4              	J4              	J4S             	304.8       	PRV 	0           	0           	;
 
 [TAGS]
 
@@ -44,6 +50,9 @@ Anytown master file for rl-wds
 
 [STATUS]
 ;ID              	Status/Setting
+ V5              	Open
+ V1              	Open
+ V4              	Open
 
 [PATTERNS]
 ;ID              	Multipliers
@@ -54,14 +63,14 @@ Anytown master file for rl-wds
 
 [CURVES]
 ;ID              	X-Value     	Y-Value
-;PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: ID              	X-Value     	Y-Value
+;PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: ID              	X-Value     	Y-Value
  H1              	0.0000      	85.440      
  H1              	550.26000   	75.000      
  H1              	1200.52000  	70.296      
  H1              	1400.7800   	65.104      
  H1              	2200.0400   	60.169      
  H1              	2900.0000   	0.          
-;PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: 
+;PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: PUMP: 
  E1              	0.0000      	0.          
  E1              	454.26000   	.50         
  E1              	908.52000   	.65         
@@ -70,11 +79,14 @@ Anytown master file for rl-wds
  E1              	2900.0000   	0.          
 
 [CONTROLS]
-LINK   P2  OPEN    IF NODE T2                BELOW    3
-LINK   P2  CLOSED  IF NODE T2                ABOVE    7
-LINK   P1  OPEN    IF NODE T1                BELOW    6
-LINK   P1  CLOSED  IF NODE T1                ABOVE    7
 
+
+
+
+LINK   V5  CLOSED  IF NODE T1                ABOVE    10
+LINK   V5  OPEN    IF NODE T1                BELOW    9
+LINK   V4  CLOSED  IF NODE T2                ABOVE    10
+LINK   V4  OPEN    IF NODE T2                BELOW    9
 
 
 
@@ -87,7 +99,6 @@ LINK   P1  CLOSED  IF NODE T1                ABOVE    7
 
 
 [RULES]
-
 
 
 
@@ -177,6 +188,9 @@ J2              	6450.570          	4424.640
 J3              	6466.770          	5769.850          
 J4              	5332.250          	5332.250          
 J5              	6094.000          	6499.190          
+J5S             	5809.812          	6840.866          
+J1S             	7114.266          	5894.401          
+J4S             	4922.195          	5619.779          
 R2              	7320.233          	4305.517          
 R1              	7962.652          	5752.186          
 T1              	6094.000          	7200.190          

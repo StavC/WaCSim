@@ -79,3 +79,9 @@ builds/
 
 
 logs/
+
+# macOS
+.DS_Store
+
+# Paper-related (manuscript, figures, LaTeX); do not push to GitHub
+paper/
