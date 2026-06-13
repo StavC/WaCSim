@@ -1,0 +1,12 @@
+inp_file: ctown_map.inp
+iterations: 400
+output_path: CtownTestingTwoAttacks
+network_topology_type: complex
+plcs: !include ctown_plcs.yaml
+log_level: debug
+demand: pdd
+mode: hybridcontrol
+decision_maker_per_plc: !include ctown_decision_plc.yaml
+attacks: !include ctown_Seqmitm.yaml
+
+decision_maker_per_scadacommand: !include ctown_decision_scada.yaml

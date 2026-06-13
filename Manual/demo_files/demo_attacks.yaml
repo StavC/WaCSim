@@ -1,0 +1,98 @@
+# ============================================================================
+# WaCSim Demo: Network Attacks Configuration (YAML)
+# ============================================================================
+# This file demonstrates all network attack types supported by WaCSim,
+# including the newly implemented Noise Injection and Rogue SCADA attacks.
+#
+# Use with: attacks: !include demo_attacks.yaml in your main config.
+# ============================================================================
+
+network_attacks:
+  # 1. Noise Injection Attack
+  # Intercepts sensor readings from PLC2 (e.g. Tank T1 level) and adds random noise.
+  - name: plc2_noise_t1
+    type: noise_injection
+    target: PLC2
+    tags:
+      - tag: T1
+        noise_type: gaussian   # Options: gaussian, gaussian_absolute, uniform, percentage, drift
+        scale: 0.1             # Noise scale parameter (e.g., standard deviation multiplier)
+    trigger:
+      type: time
+      start: 20
+      end: 60
+
+  # 2. Rogue SCADA Attack (Static Override)
+  # Simulates a rogue SCADA server overriding the pump control commands to PLC4.
+  # Forces pump P1 to shut down (value: 0.0) regardless of automatic control rules.
+  - name: rogue_scada_p1
+    type: rogue_scada
+    target: PLC4
+    tags:
+      - tag: ScadaCommand_P1
+        value: 0.0             # Forces the actuator command to a constant 0.0
+    trigger:
+      type: time
+      start: 30
+      end: 80
+
+  # 3. Rogue SCADA Attack (Time-Varying Sequence via CSV)
+  # Demonstrates reading command override values sequentially from a CSV file.
+  - name: rogue_scada_valve
+    type: rogue_scada
+    target: PLC2
+    tags:
+      - tag: ScadaCommand_V5
+        value: demo_rogue_command_data.csv  # Reads time-varying values from CSV file
+    trigger:
+      type: time
+      start: 90
+      end: 120
+
+  # 4. Standard Man-in-the-Middle (MitM) Attack
+  # Intercepts communication and replaces specific tag readings with constant offsets.
+  - name: plc1_mitm_offset
+    type: mitm
+    target: PLC1
+    tags:
+      - tag: T2
+        offset: -1.5           # Subtracts 1.5 from T2 sensor values
+    trigger:
+      type: time
+      start: 40
+      end: 100
+
+  # 5. Denial of Service (DoS) Attack
+  # Blocks communication to the target PLC, preventing it from receiving updates.
+  - name: plc3_dos
+    type: simple_dos
+    target: PLC3
+    direction: destination     # Options: destination (drops traffic to target), source (drops traffic from target)
+    trigger:
+      type: time
+      start: 50
+      end: 70
+
+  # 6. TCP Reset (RST) Injection Attack
+  # Intercepts active CIP/ENIP sessions and injects spoofed TCP RST packets to force connection teardown.
+  - name: plc4_tcp_rst
+    type: tcp_rst
+    target: PLC4
+    trigger:
+      type: time
+      start: 30
+      end: 50
+
+  # 7. ICMP Redirect MitM Attack
+  # Dynamically poisons the target PLC's routing cache using spoofed ICMP Redirect packets to route traffic through the attacker,
+  # selectively modifying EtherNet/IP (CIP) payloads containing the specified tags.
+  - name: plc2_redirect_t1
+    type: icmp_redirect_mitm
+    target: PLC2
+    tags:
+      - tag: T1
+        value: 1.0             # Overwrites T1 sensor readings to a constant 1.0
+    trigger:
+      type: time
+      start: 30
+      end: 70

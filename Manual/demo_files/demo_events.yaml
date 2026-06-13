@@ -1,0 +1,102 @@
+# ============================================================================
+# WaCSim Demo: Network Events Configuration (YAML)
+# ============================================================================
+# This file demonstrates all 8 network event types supported by WaCSim.
+# Network events apply dynamic, non-malicious network constraints (loss, delay,
+# bandwidth throttling, etc.) to target communication links when triggers are met.
+#
+# Use with: events: !include demo_events.yaml in your main config.
+# ============================================================================
+
+network_events:
+  # 1. Packet Loss Event
+  # Drops a flat percentage of packets while the trigger is active.
+  - name: plc1_packet_loss
+    type: packet_loss
+    target: PLC1
+    value: 15.0  # 15% packet loss probability
+    trigger:
+      type: time
+      start: 50
+      end: 100
+
+  # 2. Network Delay Event
+  # Introduces a fixed latency (in milliseconds) on all link traffic.
+  - name: plc2_link_delay
+    type: network_delay
+    target: PLC2
+    value: 100.0  # 100 ms constant delay
+    trigger:
+      type: time
+      start: 20
+      end: 60
+
+  # 3. Combined Delay & Loss Event
+  # Applies both delay and loss simultaneously using a single event process.
+  - name: scada_delay_loss
+    type: network_delay_loss
+    target: scada
+    delay_value: 50.0  # 50 ms delay
+    loss_value: 5.0    # 5% packet loss
+    trigger:
+      type: time
+      start: 10
+      end: 40
+
+  # 4. Link Down / Blackout Event
+  # Simulates a total communication blackout (100% loss) on the link.
+  - name: plc3_blackout
+    type: link_down
+    target: PLC3
+    trigger:
+      type: time
+      start: 70
+      end: 90
+
+  # 5. Bandwidth Throttling / Rate Limit Event
+  # Restricts link throughput to the specified bandwidth in kbps (kilobits per sec).
+  - name: plc4_throttled
+    type: rate_limit
+    target: PLC4
+    value: 10.0  # Restrict link to 10 kbps bandwidth
+    trigger:
+      type: time
+      start: 110
+      end: 150
+
+  # 6. Bursty Wireless Loss Event
+  # Simulates random bursty loss using the 2-state Gilbert-Elliott Markov model.
+  - name: plc2_wireless_loss
+    type: bursty_loss
+    target: PLC2
+    state_g2b: 5.0   # Probability of transitioning from Good to Bad state (%)
+    state_b2g: 10.0  # Probability of transitioning from Bad to Good state (%)
+    trigger:
+      type: time
+      start: 160
+      end: 200
+
+  # 7. IP Address Conflict Event
+  # Simulates address collision by alternating link state between 100% loss (blackout)
+  # and 0% loss (connected) on every co-simulation iteration step.
+  - name: plc1_ip_collision
+    type: ip_conflict
+    target: PLC1
+    trigger:
+      type: time
+      start: 210
+      end: 230
+
+  # 8. Packet Reordering / Out-of-Sequence Event
+  # Delays packets but delivers a percentage of them out of sequence (reordered).
+  - name: plc3_reordering
+    type: packet_reorder
+    target: PLC3
+    delay_value: 50.0   # Baseline delay (ms)
+    percent: 25.0       # Deliver 25% of packets immediately out-of-sequence
+    correlation: 50.0   # Reordering correlation factor (%)
+    trigger:
+      # Using a sensor-state trigger as an alternative to time-triggers:
+      type: below
+      sensor: T2
+      value: 3.5

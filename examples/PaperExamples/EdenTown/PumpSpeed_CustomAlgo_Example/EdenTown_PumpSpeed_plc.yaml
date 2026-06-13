@@ -1,0 +1,29 @@
+# PLC Configuration for PumpSpeed Example
+# ========================================
+# This network only has pumps P1 and P2 (no valves)
+# Each PLC monitors sensors and controls pumps
+# NOTE: Each sensor can only appear in ONE PLC!
+
+- name: PLC1
+  sensors:
+    - T2      # Tank T2 level (for P2 speed control)
+    - J4      # Junction pressure
+    - P2F     # Pump P2 flow sensor
+  actuators:
+    - P2      # Pump P2 controlled by this PLC
+
+- name: PLC2
+  sensors:
+    - J5      # Junction pressure
+
+- name: PLC3
+  sensors:
+    - J2      # Junction pressure
+
+- name: PLC4
+  sensors:
+    - T1      # Tank T1 level (for P1 speed control)
+    - J1      # Junction pressure
+    - P1F     # Pump P1 flow sensor
+  actuators:
+    - P1      # Pump P1 controlled by this PLC

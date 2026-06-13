@@ -1,0 +1,199 @@
+[TITLE]
+EdenTown SCADA Case
+
+[JUNCTIONS]
+;ID              	Elev        	Demand      	Pattern         
+ J1              	15.2400     	200.425999  	PAT1            	;
+ J2              	15.2400     	300.565002  	PAT1            	;
+ J3              	15.2400     	600.565002  	PAT1            	;
+ J4              	15.2400     	500.130005  	PAT1            	;
+ J5              	15.2400     	850.000000  	PAT1            	;
+
+[RESERVOIRS]
+;ID              	Head        	Pattern         
+ R2              	3.048       	                	;
+ R1              	3.048       	                	;
+
+[TANKS]
+;ID              	Elevation   	InitLevel   	MinLevel    	MaxLevel    	Diameter    	MinVol      	VolCurve
+ T1              	66.535      	3.051       	0           	10.668      	9.9532      	0           	                	;
+ T2              	66.535      	3.051       	0           	10.668      	9.9532      	0           	                	;
+
+[PIPES]
+;ID              	Node1           	Node2           	Length      	Diameter    	Roughness   	MinorLoss   	Status
+ PIPE1           	J1              	J2              	2743.2000   	304.8       	70.0000     	0.0000      	Open  	;
+ PIPE3           	J1              	J3              	1828.8000   	254.0       	120.0000    	0.0000      	Open  	;
+ PIPE2           	J2              	J4              	1828.8000   	254.0       	70.0000     	0.0000      	Open  	;
+ PIPE4           	J3              	J4              	1828.8000   	254.0       	70.0000     	0.0000      	Open  	;
+ PIPE5           	J3              	J5              	30.4800     	304.8       	120.0000    	0.0000      	Open  	;
+ PIPE6           	J4              	T2              	0.3048      	304.8       	120.0000    	0.0000      	Open  	;
+ PIPE7           	T1              	J5              	1000        	304.8       	120.0000    	0.0000      	Open  	;
+
+[PUMPS]
+;ID              	Node1           	Node2           	Parameters
+ P2              	R2              	J2              	HEAD H1	;
+ P1              	R1              	J1              	HEAD H1	;
+
+[VALVES]
+;ID              	Node1           	Node2           	Diameter    	Type	Setting     	MinorLoss
+
+[TAGS]
+
+[DEMANDS]
+;Junction        	Demand      	Pattern         	Category
+
+[STATUS]
+;ID              	Status/Setting
+
+[PATTERNS]
+;ID              	Multipliers
+;
+ PAT1            	1.0000      	1.2000      	1.5000      	1.2000      	1.0000      	0.8000      
+;
+ PAT4            	0.0000      	0.0000      	0.0000      	0.0000      	0.0000      	0.0000      
+
+[CURVES]
+;ID              	X-Value     	Y-Value
+ H1              	0.0000      	92.00
+ H1              	400.0000    	91.00
+ H1              	800.0000    	87.00
+ H1              	1200.0000   	80.00
+ H1              	1600.0000   	71.00
+ H1              	2000.0000   	59.00
+ H1              	2400.0000   	45.00
+ E1              	0.0000      	0.00
+ E1              	400.0000    	0.55
+ E1              	800.0000    	0.70
+ E1              	1200.0000   	0.78
+ E1              	1600.0000   	0.75
+ E1              	2000.0000   	0.65
+ E1              	2400.0000   	0.50          
+
+[CONTROLS]
+LINK   P2  OPEN    IF NODE T2                BELOW    3
+LINK   P2  CLOSED  IF NODE T2                ABOVE    7
+LINK   P1  OPEN    IF NODE T1                BELOW    6
+LINK   P1  CLOSED  IF NODE T1                ABOVE    7
+
+
+
+
+
+
+
+
+
+
+
+
+
+[RULES]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[ENERGY]
+ Global Efficiency  	75.0000
+ Global Price       	0
+ Demand Charge      	0.0000
+
+[EMITTERS]
+;Junction        	Coefficient
+
+[QUALITY]
+;Node            	InitQual
+
+[SOURCES]
+;Node            	Type        	Quality     	Pattern
+
+[REACTIONS]
+;Type     	Pipe/Tank       	Coefficient
+
+
+[REACTIONS]
+ Order Bulk            	1.00
+ Order Tank            	1.00
+ Order Wall            	1
+ Global Bulk           	0.000000
+ Global Wall           	0.000000
+ Limiting Potential    	0
+ Roughness Correlation 	0
+
+[MIXING]
+;Tank            	Model
+
+[TIMES]
+ Duration           	24:00 
+ Hydraulic Timestep 	0:05 
+ Quality Timestep   	0:05 
+ Pattern Timestep   	1:00 
+ Pattern Start      	0:00 
+ Report Timestep    	0:05 
+ Report Start       	0:00 
+ Start ClockTime    	00:00:00
+ Statistic          	NONE
+
+[REPORT]
+ Status             	No
+ Summary            	No
+ Page               	0
+
+[OPTIONS]
+ Units              	CMH
+ Headloss           	H-W
+ Specific Gravity   	1.000000
+ Viscosity          	1.000000
+ Trials             	200
+ Accuracy           	0.00100000
+ CHECKFREQ          	2
+ MAXCHECK           	10
+ DAMPLIMIT          	0.00000000
+ Unbalanced         	STOP
+ Pattern            	PAT1
+ Demand Multiplier  	1.00000000
+ Demand Model       	PDA
+ Minimum Pressure   	0
+ Required Pressure  	20
+ Pressure Exponent  	0.5
+ Emitter Exponent   	0.5000
+ Quality            	NONE mg/L
+ Diffusivity        	1.000000
+ Tolerance          	0.01000000
+
+[COORDINATES]
+;Node            	X-Coord           	Y-Coord
+J1              	7526.199          	5693.339          
+J2              	6450.570          	4424.640          
+J3              	6466.770          	5769.850          
+J4              	5332.250          	5332.250          
+J5              	6094.000          	6499.190          
+R2              	7320.233          	4305.517          
+R1              	7962.652          	5752.186          
+T1              	6094.000          	7200.190          
+T2              	4216.024          	5639.395          
+
+[VERTICES]
+;Link            	X-Coord           	Y-Coord
+
+[LABELS]
+;X-Coord             Y-Coord             Label & Anchor Node
+
+[BACKDROP]
+  DIMENSIONS  	935.870           	2613.650          	9070.350          	8738.700          
+ UNITS          	None
+ FILE           	
+ OFFSET         	0.00            	0.00            
+
+[END]

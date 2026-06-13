@@ -1,0 +1,46 @@
+# ============================================================================
+# WaCSim Demo: Sensor Noise Configuration (YAML)
+# ============================================================================
+# This file shows all five noise types applied to different sensors.
+# Use with: sensor_noise: !include demo_sensor_noise.yaml
+#
+# Noise types:
+#   gaussian          — std = scale × value  (multiplicative)
+#   gaussian_absolute — std = scale           (fixed std-dev)
+#   uniform           — bounded in ±scale × value
+#   percentage        — bounded in value × (1 ± scale)
+#   drift             — bias = scale × iteration (sensor degradation)
+# ============================================================================
+
+# PLC1: Uses Gaussian noise by default (5% of reading).
+#        Tank sensor T1 is overridden to use bounded uniform noise (±3%).
+#        Junction sensor J5 uses fixed-accuracy Gaussian (std = 0.1 m).
+- name: PLC1
+  default_noise: gaussian
+  default_scale: 0.05
+  sensors:
+    - name: T1
+      noise_type: uniform
+      scale: 0.03
+    - name: J5
+      noise_type: gaussian_absolute
+      scale: 0.1
+
+# PLC2: All sensors get percentage noise (±3% of reading).
+#        Tank sensor T2 is overridden to simulate sensor degradation (drift).
+- name: PLC2
+  default_noise: percentage
+  default_scale: 0.03
+  sensors:
+    - name: T2
+      noise_type: drift
+      scale: 0.001
+
+# PLC3: All sensors get Gaussian noise (2% of reading).
+#        No per-sensor overrides — all sensors use the PLC default.
+- name: PLC3
+  default_noise: gaussian
+  default_scale: 0.02
+
+# Note: PLCs not listed here get NO noise (scale = 0).
+# This file was tested with the EdenTown example network.

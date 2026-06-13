@@ -1,0 +1,13 @@
+# Example attack config for the Evolving Tutorial
+# Include from main config with: attacks: !include attacks_dos.yaml
+# DoS on PLC4 from iteration 30 to 70 (destination = packets TO PLC4 are dropped)
+
+network_attacks:
+  - name: plc4_dos
+    target: PLC4
+    type: simple_dos
+    direction: destination
+    trigger:
+      type: time
+      start: 30
+      end: 70

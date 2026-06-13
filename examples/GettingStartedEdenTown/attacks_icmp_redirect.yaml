@@ -1,0 +1,16 @@
+# Example ICMP Redirect MitM attack config
+# Include from main config with: attacks: !include attacks_icmp_redirect.yaml
+# Spoofs ICMP Redirect packets to target PLC2 between iterations 30 and 70,
+# intercepting and spoofing sensor tag T1 to a value of 1.0.
+
+network_attacks:
+  - name: redirect_plc2
+    type: icmp_redirect_mitm
+    target: PLC2
+    trigger:
+      type: time
+      start: 30
+      end: 70
+    tags:
+      - tag: T1
+        value: 1.0

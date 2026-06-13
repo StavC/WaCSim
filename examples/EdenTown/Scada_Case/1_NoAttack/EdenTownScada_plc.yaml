@@ -1,0 +1,20 @@
+- name: PLC1
+  actuators:
+    - P2
+- name: PLC2
+  sensors:
+    - T1
+- name: PLC3
+  sensors:
+    - T2
+- name: PLC4
+  actuators:
+    - P1
+- name: JPLC1_2
+  sensors: 
+     - J1
+     - J2
+
+
+
+

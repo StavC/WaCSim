@@ -1,0 +1,202 @@
+[TITLE]
+EdenTown with Variable Speed Pump Curve
+Modified for pump speed control demonstration
+
+[JUNCTIONS]
+;ID              	Elev        	Demand      	Pattern         
+ J1              	15.2400     	200.425999  	PAT1            	;
+ J2              	15.2400     	300.565002  	PAT1            	;
+ J3              	15.2400     	600.565002  	PAT1            	;
+ J4              	15.2400     	500.130005  	PAT1            	;
+ J5              	15.2400     	850.000000  	PAT1            	;
+
+[RESERVOIRS]
+;ID              	Head        	Pattern         
+ R2              	3.048       	                	;
+ R1              	3.048       	                	;
+
+[TANKS]
+;ID              	Elevation   	InitLevel   	MinLevel    	MaxLevel    	Diameter    	MinVol      	VolCurve        	Overflow
+ T1              	66.535      	3.051       	0           	10.668      	9.9532      	0           	                	;
+ T2              	66.535      	3.051       	0           	10.668      	9.9532      	0           	                	;
+
+[PIPES]
+;ID              	Node1           	Node2           	Length      	Diameter    	Roughness   	MinorLoss   	Status
+ PIPE1           	J1              	J2              	2743.2000   	304.8       	70.0000     	0.0000      	Open  	;
+ PIPE3           	J1              	J3              	1828.8000   	254.0       	120.0000    	0.0000      	Open  	;
+ PIPE2           	J2              	J4              	1828.8000   	254.0       	70.0000     	0.0000      	Open  	;
+ PIPE4           	J3              	J4              	1828.8000   	254.0       	70.0000     	0.0000      	Open  	;
+ PIPE5           	J3              	J5              	30.4800     	304.8       	120.0000    	0.0000      	Open  	;
+ PIPE6           	J4              	T2              	0.3048      	304.8       	120.0000    	0.0000      	Open  	;
+ PIPE7           	T1              	J5              	1000        	304.8       	120.0000    	0.0000      	Open  	;
+
+[PUMPS]
+;ID              	Node1           	Node2           	Parameters
+; Using new high-head curve suitable for variable speed operation
+ P2              	R2              	J2              	HEAD H1	;
+ P1              	R1              	J1              	HEAD H1	;
+
+[VALVES]
+;ID              	Node1           	Node2           	Diameter    	Type	Setting     	MinorLoss   
+
+[TAGS]
+
+[DEMANDS]
+;Junction        	Demand      	Pattern         	Category
+
+[STATUS]
+;ID              	Status/Setting
+
+[PATTERNS]
+;ID              	Multipliers
+;Demand pattern - varies through the day
+ PAT1            	1.0000      	1.2000      	1.5000      	1.2000      	1.0000      	0.8000      
+;Zero pattern for testing
+ PAT4            	0.0000      	0.0000      	0.0000      	0.0000      	0.0000      	0.0000      
+
+[CURVES]
+;ID              	X-Value     	Y-Value
+;==============================================================================
+; PUMP CURVE H1 - Very High-Head Variable Speed Pump
+;==============================================================================
+; This curve is designed for variable speed operation at LOW speeds:
+; - Very high shutoff head (300m) allows operation even at 50% speed
+; - At 50% speed: 300 x 0.25 = 75m (still > 63.5m system head!)
+; - Smooth, realistic curve shape
+;
+; At different speeds, the curve scales (head ~ speed^2):
+;   Speed 1.5 (150%): Shutoff=675m, can deliver huge flow
+;   Speed 1.2 (120%): Shutoff=432m, excellent performance
+;   Speed 1.0 (100%): Shutoff=300m, rated operation
+;   Speed 0.7 (70%):  Shutoff=147m, still works well
+;   Speed 0.5 (50%):  Shutoff=75m, CAN overcome 63.5m system head!
+;   Speed 0.4 (40%):  Shutoff=48m, marginal (< 63.5m)
+;
+; System head requirement: ~63.5m (tank elevation - reservoir head)
+; Minimum speed for flow: ~0.46 (300 x 0.46^2 = 63.5m)
+;
+;------------------------------------------------------------------------------
+ H1              	0.0000      	300.000     	; Shutoff head - 300m at zero flow
+ H1              	200.0000    	295.000     	; Slight drop
+ H1              	400.0000    	285.000     	; Gradual decrease
+ H1              	600.0000    	270.000     	; 
+ H1              	800.0000    	250.000     	; Mid-range
+ H1              	1000.0000   	225.000     	; 
+ H1              	1200.0000   	195.000     	; BEP area
+ H1              	1400.0000   	160.000     	; 
+ H1              	1600.0000   	120.000     	; High flow
+ H1              	1800.0000   	80.000      	; Near max flow
+
+;==============================================================================
+; EFFICIENCY CURVE E1
+;==============================================================================
+ E1              	0.0000      	0.          
+ E1              	500.00000   	0.55         
+ E1              	1000.00000  	0.72         
+ E1              	1500.00000  	0.80         ; Peak efficiency
+ E1              	2000.00000  	0.75         
+ E1              	2500.00000  	0.60         
+ E1              	2800.0000   	0.40         
+
+[CONTROLS]
+; NO CONTROLS HERE!
+; Pumps P1 and P2 are controlled by custom algorithms
+; that adjust speed based on tank level.
+; The algorithms are specified in the decision_maker YAML.
+
+[RULES]
+
+[ENERGY]
+ Global Efficiency  	75.0000
+ Global Price       	0
+ Demand Charge      	0.0000
+
+[EMITTERS]
+;Junction        	Coefficient
+
+[QUALITY]
+;Node            	InitQual
+
+[SOURCES]
+;Node            	Type        	Quality     	Pattern
+
+[REACTIONS]
+;Type     	Pipe/Tank       	Coefficient
+
+
+[REACTIONS]
+ Order Bulk            	1.00
+ Order Tank            	1.00
+ Order Wall            	1
+ Global Bulk           	0.000000
+ Global Wall           	0.000000
+ Limiting Potential    	0
+ Roughness Correlation 	0
+
+[MIXING]
+;Tank            	Model
+
+[TIMES]
+ Duration           	24:00 
+ Hydraulic Timestep 	0:05 
+ Quality Timestep   	0:05 
+ Pattern Timestep   	1:00 
+ Pattern Start      	0:00 
+ Report Timestep    	0:05 
+ Report Start       	0:00 
+ Start ClockTime    	00:00:00
+ Statistic          	NONE
+
+[REPORT]
+ Status             	Yes
+ Summary            	Yes
+ Page               	0
+
+[OPTIONS]
+ Units              	CMH
+ Headloss           	H-W
+ Specific Gravity   	1.000000
+ Viscosity          	1.000000
+ Trials             	200
+ Accuracy           	0.00100000
+ CHECKFREQ          	2
+ MAXCHECK           	10
+ DAMPLIMIT          	0.00000000
+ Unbalanced         	Continue 10
+ Pattern            	PAT1
+ Demand Multiplier  	1.00000000
+ Demand Model       	PDA
+ Minimum Pressure   	0
+ Required Pressure  	20
+ Pressure Exponent  	0.5
+ Emitter Exponent   	0.5000
+ Quality            	NONE mg/L
+ Diffusivity        	1.000000
+ Tolerance          	0.01000000
+
+[COORDINATES]
+;Node            	X-Coord           	Y-Coord
+J1              	7526.199          	5693.339          
+J2              	6450.570          	4424.640          
+J3              	6466.770          	5769.850          
+J4              	5332.250          	5332.250          
+J5              	6094.000          	6499.190          
+R2              	7320.233          	4305.517          
+R1              	7962.652          	5752.186          
+T1              	6094.000          	7200.190          
+T2              	4216.024          	5639.395          
+
+[VERTICES]
+;Link            	X-Coord           	Y-Coord
+
+[LABELS]
+;X-Coord             Y-Coord             Label & Anchor Node
+
+[BACKDROP]
+  DIMENSIONS  	935.870           	2613.650          	9070.350          	8738.700          
+ UNITS          	None
+ FILE           	
+ OFFSET         	0.00            	0.00            
+
+[END]
+

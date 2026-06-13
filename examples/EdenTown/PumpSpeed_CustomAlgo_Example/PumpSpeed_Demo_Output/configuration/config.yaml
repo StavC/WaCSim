@@ -1,0 +1,42 @@
+decision_maker_per_plc:
+- actuators:
+  - decision_maker: examples/EdenTown/PumpSpeed_CustomAlgo_Example/CustomAlgos/PumpSpeed_P2_Algo.py
+    dependents:
+    - T2
+    name: P2
+  name: PLC1
+- actuators:
+  - decision_maker: examples/EdenTown/PumpSpeed_CustomAlgo_Example/CustomAlgos/PumpSpeed_P1_Algo.py
+    dependents:
+    - T1
+    name: P1
+  name: PLC4
+demand: pdd
+demand_patterns: ../PLC_Case/demands_EdenTown.csv
+inp_file: EdenTown_PumpSpeed.inp
+iterations: 200
+log_level: debug
+mode: plccontrol
+network_topology_type: complex
+output_path: PumpSpeed_Demo_Output
+plcs:
+- actuators:
+  - P2
+  name: PLC1
+  sensors:
+  - T2
+  - J4
+  - P2F
+- name: PLC2
+  sensors:
+  - J5
+- name: PLC3
+  sensors:
+  - J2
+- actuators:
+  - P1
+  name: PLC4
+  sensors:
+  - T1
+  - J1
+  - P1F

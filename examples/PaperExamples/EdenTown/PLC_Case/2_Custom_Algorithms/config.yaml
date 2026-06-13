@@ -1,0 +1,12 @@
+inp_file: EdenTown.inp
+output_path: output
+iterations: 500
+network_topology_type: complex
+plcs: !include plcs.yaml
+demand: pdd
+log_level: debug
+demand_patterns: demands_EdenTown.csv
+mode: plccontrol
+decision_maker_per_plc: !include decision_plc.yaml
+attacks: !include attack.yaml
+

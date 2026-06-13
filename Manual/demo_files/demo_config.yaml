@@ -1,0 +1,112 @@
+# ============================================================================
+# WaCSim Demo: Complete Example Configuration (YAML)
+# ============================================================================
+# This file demonstrates how to reference all optional data inputs in a 
+# single main configuration. It provides a blueprint for running simulations.
+#
+# IMPORTANT: Column headers in the referenced CSV files must match your PLC
+# layout names (e.g. PLC1, PLC2, scada) or the INP file (e.g. T1, pattern1).
+#
+# To run this configuration:
+# 1. Copy these files to your active experiment directory.
+# 2. Adjust headers and values to match your specific hydraulic network.
+# 3. Run the simulator using:
+#    sudo wacsim demo_config.yaml
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# Core Settings
+# ----------------------------------------------------------------------------
+# Path to the EPANET hydraulic network file (.inp)
+inp_file: EdenTown.inp
+
+# Path to the PLC configuration layout (.yaml)
+plcs: !include EdenTown_plc.yaml
+
+# Simulator mode:
+# - 'plccontrol'    : PLCs control actuators based on local logic; SCADA only monitors.
+# - 'scadacontrol'  : SCADA decides and sends commands to PLCs over the network.
+# - 'hybrid'        : Decisions are split or negotiated between SCADA and PLCs.
+mode: plccontrol
+
+# Output directory (relative to the directory containing this config)
+output_path: output_demo
+
+# Number of simulation steps (iterations) to run
+iterations: 144
+
+# Demand simulation model:
+# - 'pdd' : Pressure-driven demand (more realistic when pressure drops)
+# - 'dd'  : Demand-driven demand (fixed demands, ignores pressure limits)
+demand: pdd
+
+# Network topology type for Mininet emulator:
+# - 'simple' : Standard star/hub topology
+# - 'ring'   : Ring topology
+# - 'custom' : Custom user-defined topology
+network_topology_type: simple
+
+# Saving interval (in iterations) for saving temporary simulator checkpoints
+saving_interval: 10
+
+# Log level for console output: debug, info, warning, error
+log_level: info
+
+# Enable/disable the interactive Mininet CLI on startup
+mininet_cli: false
+
+# ----------------------------------------------------------------------------
+# Batch Simulations (Optional)
+# ----------------------------------------------------------------------------
+# If set to > 1, WaCSim runs multiple sequential simulations.
+# Each simulation index uses the corresponding row in the data CSVs.
+# Set this to 3 to match the 3 rows in the demo CSVs.
+batch_simulations: 3
+
+# ----------------------------------------------------------------------------
+# Override Data Files (CSV)
+# ----------------------------------------------------------------------------
+
+# Custom demand patterns CSV file (overrides/supplements INP patterns)
+# For single-run, this is a single CSV. For batch run, this can be a folder
+# containing numbered CSVs (e.g., 0.csv, 1.csv, 2.csv).
+demand_patterns: demo_demand_patterns.csv
+
+# Override initial tank levels (in meters) at the start of each simulation.
+# Headers must match the tank IDs in the INP file.
+initial_tank_data: demo_initial_tank_data.csv
+
+# ----------------------------------------------------------------------------
+# Network Emulation Parameters (CSV)
+# ----------------------------------------------------------------------------
+# Each file has columns representing PLC/SCADA interfaces, with one row per batch.
+
+# Packet loss probability (expressed as percentage: 0.0 to 100.0)
+network_loss_data: demo_network_loss_data.csv
+
+# Constant link latency / propagation delay (in milliseconds)
+network_delay_data: demo_network_delay_data.csv
+
+# Random delay jitter standard deviation (in milliseconds)
+network_jitter_data: demo_network_jitter_data.csv
+
+# ----------------------------------------------------------------------------
+# Sensor Noise Configuration (YAML or CSV)
+# ----------------------------------------------------------------------------
+
+# Option 1 (Recommended): Advanced multi-type, per-sensor noise (YAML).
+# Supports 5 noise types: gaussian, gaussian_absolute, uniform, percentage, drift.
+# If both sensor_noise and noise_scale_data are active, sensor_noise takes priority.
+sensor_noise: !include demo_sensor_noise.yaml
+
+# Option 2 (Legacy): Per-PLC Gaussian noise scale (CSV)
+# If using this instead of YAML, uncomment this line and comment out sensor_noise.
+# noise_scale_data: demo_noise_scale_batch.csv
+
+# ----------------------------------------------------------------------------
+# Attacks Configuration (Optional)
+# ----------------------------------------------------------------------------
+# Include cyber-attacks (e.g., DoS, MitM, Rogue SCADA, Noise Injection)
+# Uncomment the line below to activate attacks using the demo configuration.
+# attacks: !include demo_attacks.yaml
+

@@ -1,0 +1,9 @@
+# Decision maker config for the Evolving Tutorial (custom algorithm on P1)
+# Include from main config with: decision_maker_per_plc: !include decision_plc_tutorial.yaml
+# PLC4 controls P1; we use a simple Python guard that uses J1 pressure.
+
+- name: PLC4
+  actuators:
+    - name: P1
+      decision_maker: TutorialAlgos/simple_p1_guard.py
+      dependents: [J1]

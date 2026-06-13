@@ -1,0 +1,13 @@
+# Example TCP Reset (RST) Injection attack config
+# Include from main config with: attacks: !include attacks_tcp_rst.yaml
+# Intercepts communication on target PLC4 between iterations 30 and 50,
+# injecting forged TCP RST packets to tear down active CIP/ENIP connections.
+
+network_attacks:
+  - name: plc4_tcp_rst
+    type: tcp_rst
+    target: PLC4
+    trigger:
+      type: time
+      start: 30
+      end: 50

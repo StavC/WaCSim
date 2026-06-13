@@ -1,0 +1,31 @@
+# EdenTown Configuration with Variable Pump Speed Control Example
+# =================================================================
+# This config demonstrates PUMP SPEED CONTROL using custom algorithms.
+#
+# What's special about this example:
+# - Uses variable pump speed control (0.0 to 2.0) instead of simple on/off
+# - P1 and P2 speed increments by 0.1 each iteration: 0.0 -> 0.1 -> ... -> 1.5 -> 0.0
+# - NO [CONTROLS] needed in INP file for P1 or P2
+# - Speed is applied via EPANET's SETTING property (pump speed multiplier)
+#
+# Speed Values:
+# - 0.0 = Pump OFF
+# - 1.0 = Pump at 100% normal speed
+# - 1.5 = Pump at 150% speed (50% faster)
+# - 2.0 = Pump at 200% maximum speed
+#
+# To run this example:
+#   wacsim examples/EdenTown/PumpSpeed_CustomAlgo_Example/EdenTown_PumpSpeed_config.yaml
+
+inp_file: EdenTown_PumpSpeed.inp
+output_path: PumpSpeed_Demo_Output
+iterations: 200
+network_topology_type: complex
+plcs: !include EdenTown_PumpSpeed_plc.yaml
+demand: pdd
+log_level: debug
+demand_patterns: ../PLC_Case/demands_EdenTown.csv
+mode: plccontrol
+decision_maker_per_plc: !include EdenTown_PumpSpeed_decision_plc.yaml
+# No attacks for this demo - just demonstrating pump speed control
+

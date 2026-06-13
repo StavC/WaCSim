@@ -1,0 +1,10 @@
+# SCADA-side decision config for CTown hybrid mode.
+# Hybrid_Values_To_Send makes SCADA send these sensor values to the PLC
+# with an "S" suffix (T7 -> T7S, T5 -> T5S), so PLC-5 receives the
+# SCADA-reported tank values alongside the peer-reported ones. This restores
+# the cross-channel data (T7 vs T7S) that the hybrid-mode analysis compares.
+- name: PLC5
+  actuators:
+    - name: PU10
+      decision_maker: rule
+      Hybrid_Values_To_Send: [T7, T5]
